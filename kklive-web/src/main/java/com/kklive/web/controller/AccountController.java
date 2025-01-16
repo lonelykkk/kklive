@@ -1,5 +1,6 @@
 package com.kklive.web.controller;
 
+import com.kklive.component.RedisComponent;
 import com.kklive.entity.constants.Constants;
 import com.kklive.entity.dto.TokenUserInfoDto;
 import com.kklive.entity.dto.UserCountInfoDto;
@@ -33,20 +34,47 @@ import java.util.Map;
 public class AccountController extends ABaseController {
 
     @Resource
-    private RedisUtils redisUtils;
+    private RedisComponent redisComponent;
     @Resource
     private UserInfoService userInfoService;
 
+    /**
+     * 验证码
+     * @return
+     */
     @RequestMapping("/checkCode")
     public ResponseVO checkCode() {
         ArithmeticCaptcha captcha = new ArithmeticCaptcha(100, 42);
         String code = captcha.text();
-
+        String checkCodeKey = redisComponent.saveCheckCode(code);
+        String checkCodeBase64 = captcha.toBase64();
+        Map<String, String> result = new HashMap<>();
+        result.put("checkCode", checkCodeBase64);
+        result.put("checkCodeKey", checkCodeKey);
+        return getSuccessResponseVO(result);
     }
 
+    /**
+     * 注册
+     * @param email
+     * @param nickName
+     * @param registerPassword
+     * @param checkCodeKey
+     * @param checkCode
+     * @return
+     */
     @RequestMapping("/register")
-    public ResponseVO register() {
-
+    public ResponseVO register(@NotEmpty @Email @Size(max = 150) String email, @NotEmpty @Size(max = 20) String nickName, @NotEmpty @Pattern(regexp =
+            Constants.REGEX_PASSWORD) String registerPassword, @NotEmpty String checkCodeKey, @NotEmpty String checkCode) {
+        try {
+            if (!checkCode.equalsIgnoreCase(redisComponent.getCheckCode(checkCodeKey))) {
+                throw new BusinessException("图片验证码不正确");
+            }
+            userInfoService.register(email, nickName, registerPassword);
+            return getSuccessResponseVO(null);
+        }finally {
+            redisComponent.cleanCheckCode(checkCodeKey);
+        }
 
     }
 }

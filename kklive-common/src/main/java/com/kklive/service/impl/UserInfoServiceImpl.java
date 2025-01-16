@@ -1,5 +1,6 @@
 package com.kklive.service.impl;
 
+import com.kklive.component.RedisComponent;
 import com.kklive.entity.constants.Constants;
 import com.kklive.entity.dto.CountInfoDto;
 import com.kklive.entity.dto.SysSettingDto;
@@ -39,6 +40,17 @@ import java.util.List;
 public class UserInfoServiceImpl implements UserInfoService {
 
 
+    @Resource
+    private RedisComponent redisComponent;
+
+    @Resource
+    private UserInfoMapper<UserInfo, UserInfoQuery> userInfoMapper;
+
+    @Resource
+    private VideoInfoMapper<VideoInfo, VideoInfoQuery> videoInfoMapper;
+
+    @Resource
+    private UserFocusMapper<UserFocus, UserFocusQuery> userFocusMapper;
     @Override
     public List<UserInfo> findListByParam(UserInfoQuery param) {
         return null;
@@ -131,7 +143,30 @@ public class UserInfoServiceImpl implements UserInfoService {
 
     @Override
     public void register(String email, String nickName, String password) {
+        UserInfo userInfo = this.userInfoMapper.selectByEmail(email);
+        if (null != userInfo) {
+            throw new BusinessException("邮箱账号已经存在");
+        }
+        UserInfo nickNameUser = this.userInfoMapper.selectByNickName(nickName);
+        if (null != nickNameUser) {
+            throw new BusinessException("昵称已经存在");
+        }
+        String userId = StringTools.getRandomNumber(Constants.LENGTH_10);
+        userInfo = new UserInfo();
+        userInfo.setUserId(userId);
+        userInfo.setNickName(nickName);
+        userInfo.setEmail(email);
+        userInfo.setPassword(StringTools.encodeByMD5(password));
+        userInfo.setJoinTime(new Date());
+        userInfo.setStatus(UserStatusEnum.ENABLE.getStatus());
+        userInfo.setSex(UserSexEnum.SECRECY.getType());
+        userInfo.setTheme(Constants.ONE);
+        // TODO 初始化用户硬币
+        SysSettingDto sysSettingDto = redisComponent.getSysSettingDto();
+        userInfo.setTotalCoinCount(sysSettingDto.getRegisterCoinCount());
+        userInfo.setCurrentCoinCount(sysSettingDto.getRegisterCoinCount());
 
+        this.userInfoMapper.insert(userInfo);
     }
 
     @Override
