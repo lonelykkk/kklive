@@ -1,5 +1,6 @@
 package com.kklive.web;
 
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -10,6 +11,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @Version V1.0
  */
 @SpringBootApplication(scanBasePackages = "com.kklive")
+@MapperScan(basePackages = {"com.kklive.mappers"})
 public class KKliveWebApplication {
     public static void main(String[] args) {
         SpringApplication.run(KKliveWebApplication.class, args);
