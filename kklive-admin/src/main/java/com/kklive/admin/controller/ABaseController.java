@@ -117,7 +117,7 @@ public class ABaseController {
     public void saveToken2Cookie(HttpServletResponse response, String token) {
         Cookie cookie = new Cookie(Constants.TOKEN_WEB, token);
         //-1会话级别 单位秒
-        cookie.setMaxAge(Constants.TIME_SECONDS_DAY * 7);
+        cookie.setMaxAge(-1);
         cookie.setPath("/");
         response.addCookie(cookie);
     }
