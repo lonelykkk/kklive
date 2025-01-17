@@ -106,4 +106,24 @@ public class AccountController extends ABaseController {
             }
         }
     }
+
+    @RequestMapping(value = "/autoLogin")
+    public ResponseVO autoLogin(HttpServletResponse response) {
+        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
+        if (tokenUserInfoDto == null) {
+            return getSuccessResponseVO(null);
+        }
+        if (tokenUserInfoDto.getExpireAt() - System.currentTimeMillis() < Constants.REDIS_KEY_EXPIRES_DAY) {
+            redisComponent.saveTokenInfo(tokenUserInfoDto);
+            saveToken2Cookie(response, tokenUserInfoDto.getToken());
+        }
+        // TODO 设置粉丝数、硬币数、关注数
+        return getSuccessResponseVO(tokenUserInfoDto);
+    }
+
+    @RequestMapping(value = "/logout")
+    public ResponseVO logout(HttpServletResponse response) {
+        cleanCookie(response);
+        return getSuccessResponseVO(null);
+    }
 }
