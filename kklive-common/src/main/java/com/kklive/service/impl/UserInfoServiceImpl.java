@@ -138,7 +138,21 @@ public class UserInfoServiceImpl implements UserInfoService {
 
     @Override
     public TokenUserInfoDto login(String email, String password, String ip) {
-        return null;
+        UserInfo userInfo = this.userInfoMapper.selectByEmail(email);
+        if (null == userInfo || !userInfo.getPassword().equals(password)) {
+            throw new BusinessException("账号或者密码错误");
+        }
+        if (UserStatusEnum.DISABLE.getStatus().equals(userInfo.getStatus())) {
+            throw new BusinessException("账号已禁用");
+        }
+        UserInfo updateInfo = new UserInfo();
+        updateInfo.setLastLoginTime(new Date());
+        updateInfo.setLastLoginIp(ip);
+        this.userInfoMapper.updateByUserId(updateInfo, userInfo.getUserId());
+
+        TokenUserInfoDto tokenUserInfoDto = CopyTools.copy(userInfo, TokenUserInfoDto.class);
+        redisComponent.saveTokenInfo(tokenUserInfoDto);
+        return tokenUserInfoDto;
     }
 
     @Override

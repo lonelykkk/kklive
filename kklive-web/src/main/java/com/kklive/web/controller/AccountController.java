@@ -77,4 +77,33 @@ public class AccountController extends ABaseController {
         }
 
     }
+
+    @RequestMapping(value = "/login")
+    public ResponseVO login(HttpServletRequest request, HttpServletResponse response, @NotEmpty @Email String email, @NotEmpty String password,
+                            @NotEmpty String checkCodeKey, @NotEmpty String checkCode) {
+        try {
+            if (!checkCode.equalsIgnoreCase(redisComponent.getCheckCode(checkCodeKey))) {
+                throw new BusinessException("图片验证码不正确");
+            }
+            String ip = getIpAddr();
+            TokenUserInfoDto tokenUserInfoDto = userInfoService.login(email, password, ip);
+            saveToken2Cookie(response, tokenUserInfoDto.getToken());
+            // TODO 设置粉丝数、硬币数、关注数
+            return getSuccessResponseVO(tokenUserInfoDto);
+        }finally {
+            redisComponent.cleanCheckCode(checkCodeKey);
+            Cookie[] cookies = request.getCookies();
+            if (cookies != null) {
+                String token = null;
+                for (Cookie cookie : cookies) {
+                    if (Constants.TOKEN_WEB.equals(cookie.getName())) {
+                        token = cookie.getValue();
+                    }
+                }
+                if (!StringTools.isEmpty(token)) {
+                    redisComponent.cleanToken(token);
+                }
+            }
+        }
+    }
 }
