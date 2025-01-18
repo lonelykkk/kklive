@@ -14,6 +14,7 @@ import com.kklive.utils.DateUtil;
 import com.kklive.utils.FFmpegUtils;
 import com.kklive.utils.StringTools;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -93,6 +94,14 @@ public class FileController extends ABaseController {
         return getSuccessResponseVO(uploadId);
     }
 
+    /**
+     * 上传视频
+     * @param chunkFile
+     * @param chunkIndex
+     * @param uploadId
+     * @return
+     * @throws IOException
+     */
     @RequestMapping("/uploadVideo")
     public ResponseVO uploadVideo(@NotNull MultipartFile chunkFile, @NotNull Integer chunkIndex, @NotEmpty String uploadId) throws IOException {
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
@@ -118,5 +127,44 @@ public class FileController extends ABaseController {
         fileDto.setFileSize(fileDto.getFileSize() + chunkFile.getSize());
         redisComponent.updateVideoFileInfo(tokenUserInfoDto.getUserId(), fileDto);
         return getSuccessResponseVO(null);
+    }
+
+    @RequestMapping("/delUploadVideo")
+    public ResponseVO delUploadVideo(@NotEmpty String uploadId) throws IOException {
+        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
+        UploadingFileDto fileDto = redisComponent.getUploadingVideoFile(tokenUserInfoDto.getUserId(), uploadId);
+        if (fileDto == null) {
+            throw new BusinessException("文件不存在");
+        }
+        redisComponent.delVideoFileInfo(tokenUserInfoDto.getUserId(),uploadId);
+        FileUtils.deleteDirectory(new File(appConfig.getProjectFolder() + Constants.FILE_FOLDER + Constants.FILE_FOLDER_TEMP + fileDto.getFilePath()));
+        return getSuccessResponseVO(uploadId);
+    }
+
+    /**
+     * 上传视频封面
+     * @param file
+     * @param createThumbnail
+     * @return
+     * @throws IOException
+     */
+    @RequestMapping("/uploadImage")
+    public ResponseVO uploadImage(@NotEmpty MultipartFile file,@NotNull Boolean createThumbnail) throws IOException {
+        String day = DateUtil.format(new Date(), DateTimePatternEnum.YYYYMMDD.getPattern());
+        String folder = appConfig.getProjectFolder() + Constants.FILE_FOLDER + Constants.FILE_COVER + day;
+        File folderFile = new File(folder);
+        if (!folderFile.exists()) {
+            folderFile.mkdirs();
+        }
+        String fileName = file.getOriginalFilename();
+        String fileSuffix = fileName.substring(fileName.lastIndexOf("."));
+        String realFileName = StringTools.getRandomString(Constants.LENGTH_30) + fileSuffix;
+        String filePath = folder + "/" + realFileName;
+        file.transferTo(new File(filePath));
+        if (createThumbnail) {
+            //生成缩略图
+            fFmpegUtils.createImageThumbnail(filePath);
+        }
+        return getSuccessResponseVO(Constants.FILE_COVER + day + "/" + realFileName);
     }
 }
