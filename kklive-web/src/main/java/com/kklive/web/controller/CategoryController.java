@@ -19,49 +19,13 @@ import java.util.List;
 @RequestMapping("/category")
 @Validated
 public class CategoryController extends ABaseController {
-
-    private static final Logger log = LoggerFactory.getLogger(CategoryController.class);
     @Resource
     private CategoryInfoService categoryInfoService;
 
-    @RequestMapping("/loadCategory")
-    public ResponseVO loadAllCategory(CategoryInfoQuery categoryInfo) {
-        categoryInfo.setOrderBy("sort asc");
-        categoryInfo.setConvert2Tree(true);
-        List<CategoryInfo> categoryInfoList = categoryInfoService.findListByParam(categoryInfo);
+    @RequestMapping("/loadAllCategory")
+    public ResponseVO loadAllCategory() {
+        List<CategoryInfo> categoryInfoList = categoryInfoService.getAllCategoryList();
         return getSuccessResponseVO(categoryInfoList);
-    }
-
-    @RequestMapping("/saveCategory")
-    public ResponseVO saveCategory(@NotNull Integer pCategoryId,
-                                   Integer categoryId,
-                                   @NotEmpty String categoryCode,
-                                   @NotEmpty String categoryName,
-                                   String icon,
-                                   String background) {
-        CategoryInfo categoryInfo = new CategoryInfo();
-        categoryInfo.setpCategoryId(pCategoryId);
-        categoryInfo.setCategoryId(categoryId);
-        categoryInfo.setCategoryCode(categoryCode);
-        categoryInfo.setCategoryName(categoryName);
-        categoryInfo.setIcon(icon);
-        categoryInfo.setBackground(background);
-        categoryInfoService.saveCategoryInfo(categoryInfo);
-        return getSuccessResponseVO(null);
-    }
-
-
-    @RequestMapping("/delCategory")
-    public ResponseVO delCategory(@NotNull Integer categoryId) {
-        categoryInfoService.delCategory(categoryId);
-        return getSuccessResponseVO(null);
-    }
-
-    @RequestMapping("/changeSort")
-    public ResponseVO changeSort(@NotNull Integer pCategoryId,
-                                 @NotEmpty String categoryIds) {
-        categoryInfoService.changeSort(pCategoryId, categoryIds);
-        return getSuccessResponseVO(null);
     }
 }
 

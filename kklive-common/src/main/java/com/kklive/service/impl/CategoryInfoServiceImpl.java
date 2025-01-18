@@ -172,7 +172,12 @@ public class CategoryInfoServiceImpl implements CategoryInfoService {
 
     @Override
     public List<CategoryInfo> getAllCategoryList() {
-        return null;
+        List<CategoryInfo> categoryList = redisComponent.getCategoryList();
+        if (categoryList.isEmpty()) {
+            save2Redis();
+            return redisComponent.getCategoryList();
+        }
+        return categoryList;
     }
 
     private List<CategoryInfo> convertLine2Tree(List<CategoryInfo> dataList, Integer pid) {
