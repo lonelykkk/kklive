@@ -1,7 +1,11 @@
 package com.kklive.web.controller;
 
+import com.kklive.component.RedisComponent;
 import com.kklive.entity.config.AppConfig;
 import com.kklive.entity.constants.Constants;
+import com.kklive.entity.dto.SysSettingDto;
+import com.kklive.entity.dto.TokenUserInfoDto;
+import com.kklive.entity.dto.UploadingFileDto;
 import com.kklive.entity.enums.DateTimePatternEnum;
 import com.kklive.entity.enums.ResponseCodeEnum;
 import com.kklive.entity.vo.ResponseVO;
@@ -38,11 +42,13 @@ import static com.kklive.web.controller.ABaseController.STATUC_SUCCESS;
 @Slf4j
 @RestController
 @RequestMapping("/file")
-public class FileController {
+public class FileController extends ABaseController {
     @Resource
     private AppConfig appConfig;
     @Resource
     private FFmpegUtils fFmpegUtils;
+    @Resource
+    private RedisComponent redisComponent;
 
     @RequestMapping("/getResource")
     public void getResource(HttpServletResponse response, @NotEmpty String sourceName) {
@@ -71,5 +77,46 @@ public class FileController {
         } catch (Exception e) {
             log.error("读取文件异常", e);
         }
+    }
+
+    /**
+     * 预上传
+     *
+     * @param fileName
+     * @param chunks   分片号
+     * @return 返回文件id
+     */
+    @RequestMapping("/preUploadVideo")
+    public ResponseVO preUploadVideo(@NotEmpty String fileName, @NotNull Integer chunks) {
+        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
+        String uploadId = redisComponent.savePreVideoFileInfo(tokenUserInfoDto.getUserId(), fileName, chunks);
+        return getSuccessResponseVO(uploadId);
+    }
+
+    @RequestMapping("/uploadVideo")
+    public ResponseVO uploadVideo(@NotNull MultipartFile chunkFile, @NotNull Integer chunkIndex, @NotEmpty String uploadId) throws IOException {
+        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
+        UploadingFileDto fileDto = redisComponent.getUploadingVideoFile(tokenUserInfoDto.getUserId(), uploadId);
+        if (fileDto == null) {
+            throw new BusinessException("文件不存在，请重新上传");
+        }
+        SysSettingDto sysSettingDto = redisComponent.getSysSettingDto();
+        if (fileDto.getFileSize() > sysSettingDto.getVideoSize() * Constants.MB_SIZE) {
+            throw new BusinessException("文件超过大小限制");
+        }
+        // 判断分片
+        if ((chunkIndex - 1) > fileDto.getChunkIndex() || chunkIndex > fileDto.getChunks() - 1) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        }
+
+        // 放置分片的目录
+        String folder = appConfig.getProjectFolder() + Constants.FILE_FOLDER + Constants.FILE_FOLDER_TEMP + fileDto.getFilePath();
+        File targetFile = new File(folder + "/" + chunkIndex); //创建文件（分片）
+        chunkFile.transferTo(targetFile);
+        //记录文件上传的分片数
+        fileDto.setChunkIndex(chunkIndex);
+        fileDto.setFileSize(fileDto.getFileSize() + chunkFile.getSize());
+        redisComponent.updateVideoFileInfo(tokenUserInfoDto.getUserId(), fileDto);
+        return getSuccessResponseVO(null);
     }
 }

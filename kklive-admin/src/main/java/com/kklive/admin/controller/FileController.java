@@ -37,7 +37,7 @@ import static com.kklive.admin.controller.ABaseController.STATUC_SUCCESS;
 @Slf4j
 @RestController
 @RequestMapping("/file")
-public class FileController {
+public class FileController extends ABaseController{
     @Resource
     private AppConfig appConfig;
     @Resource
