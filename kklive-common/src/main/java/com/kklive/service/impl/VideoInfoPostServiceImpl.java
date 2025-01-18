@@ -44,6 +44,13 @@ import java.util.stream.Collectors;
 @Slf4j
 public class VideoInfoPostServiceImpl implements VideoInfoPostService {
 
+    @Resource
+    private RedisComponent redisComponent;
+    @Resource
+    private VideoInfoPostMapper<VideoInfoPost, VideoInfoPostQuery> videoInfoPostMapper;
+    @Resource
+    private VideoInfoFilePostMapper<VideoInfoFilePost, VideoInfoFilePostQuery> videoInfoFilePostMapper;
+
 
     @Override
     public List<VideoInfoPost> findListByParam(VideoInfoPostQuery param) {
@@ -101,8 +108,74 @@ public class VideoInfoPostServiceImpl implements VideoInfoPostService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void saveVideoInfo(VideoInfoPost videoInfoPost, List<VideoInfoFilePost> uploadFileList) {
+        if (uploadFileList.size() > redisComponent.getSysSettingDto().getVideoPCount()) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        }
+        if (!StringTools.isEmpty(videoInfoPost.getVideoId())) {
+            VideoInfoPost videoInfoPostDb = this.videoInfoPostMapper.selectByVideoId(videoInfoPost.getVideoId());
+            if (videoInfoPostDb == null) {
+                throw new BusinessException(ResponseCodeEnum.CODE_600);
+            }
+            if (ArrayUtils.contains(new Integer[]{VideoStatusEnum.STATUS0.getStatus(), VideoStatusEnum.STATUS2.getStatus()}, videoInfoPostDb.getStatus())) {
+                throw new BusinessException(ResponseCodeEnum.CODE_600);
+            }
+        }
 
+        Date curDate = new Date();
+        String videoId = videoInfoPost.getVideoId();
+        List<VideoInfoFilePost> deleteFileList = new ArrayList();
+        List<VideoInfoFilePost> addFileList = uploadFileList;
+
+        if (StringTools.isEmpty(videoId)) {
+            videoId = StringTools.getRandomString(Constants.LENGTH_10);
+            videoInfoPost.setVideoId(videoId);
+            videoInfoPost.setCreateTime(curDate);
+            videoInfoPost.setLastUpdateTime(curDate);
+            videoInfoPost.setStatus(VideoStatusEnum.STATUS0.getStatus());
+            this.videoInfoPostMapper.insert(videoInfoPost);
+        } else {
+            VideoInfoFilePostQuery fileQuery = new VideoInfoFilePostQuery();
+            fileQuery.setVideoId(videoId);
+            fileQuery.setUserId(videoInfoPost.getUserId());
+            List<VideoInfoFilePost> dbInfoFileList = this.videoInfoFilePostMapper.selectList(fileQuery);
+            Map<String, VideoInfoFilePost> uploadFileMap = uploadFileList.stream().
+                    collect(Collectors.toMap(item -> item.getUploadId(), Function.identity(), (data1, data2) -> data2));
+
+            //删除的文件 -> 数据库中有，uploadFileList没有
+            Boolean updateFileName = false;
+            for (VideoInfoFilePost fileInfo : dbInfoFileList) {
+                VideoInfoFilePost updateFile = uploadFileMap.get(fileInfo.getUploadId());
+                if (updateFile == null) {
+                    deleteFileList.add(fileInfo);
+                } else if (!updateFile.getFileName().equals(fileInfo.getFileName())) {
+                    updateFileName = true;
+                }
+            }
+            //新增的文件  没有fileId就是新增的文件
+            addFileList = uploadFileList.stream().filter(item -> item.getFileId() == null).collect(Collectors.toList());
+            videoInfoPost.setLastUpdateTime(curDate);
+
+            //判断视频信息是否有更改
+            Boolean changeVideoInfo = this.changeVideoInfo(videoInfoPost);
+            if (!addFileList.isEmpty()) {
+                videoInfoPost.setStatus(VideoStatusEnum.STATUS0.getStatus());
+            } else if (changeVideoInfo || updateFileName) {
+                videoInfoPost.setStatus(VideoStatusEnum.STATUS2.getStatus());
+            }
+            this.videoInfoPostMapper.updateByVideoId(videoInfoPost, videoInfoPost.getVideoId());
+        }
+    }
+
+    private boolean changeVideoInfo(VideoInfoPost videoInfoPost) {
+        VideoInfoPost dbInfo = this.videoInfoPostMapper.selectByVideoId(videoInfoPost.getVideoId());
+        //标题，封面，标签，简介
+        if (!videoInfoPost.getVideoCover().equals(dbInfo.getVideoCover()) || !videoInfoPost.getVideoName().equals(dbInfo.getVideoName()) || !videoInfoPost.getTags().equals(dbInfo.getTags()) || !videoInfoPost.getIntroduction().equals(
+                dbInfo.getIntroduction())) {
+            return true;
+        }
+        return false;
     }
 
     @Override
