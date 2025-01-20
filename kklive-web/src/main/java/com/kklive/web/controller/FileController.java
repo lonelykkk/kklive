@@ -149,7 +149,7 @@ public class FileController extends ABaseController {
      * @throws IOException
      */
     @RequestMapping("/uploadImage")
-    public ResponseVO uploadImage(@NotEmpty MultipartFile file,@NotNull Boolean createThumbnail) throws IOException {
+    public ResponseVO uploadImage(@NotNull MultipartFile file,@NotNull Boolean createThumbnail) throws IOException {
         String day = DateUtil.format(new Date(), DateTimePatternEnum.YYYYMMDD.getPattern());
         String folder = appConfig.getProjectFolder() + Constants.FILE_FOLDER + Constants.FILE_COVER + day;
         File folderFile = new File(folder);

@@ -110,14 +110,18 @@ public class VideoInfoPostServiceImpl implements VideoInfoPostService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void saveVideoInfo(VideoInfoPost videoInfoPost, List<VideoInfoFilePost> uploadFileList) {
+        // 如果修改的视频文件大小超出系统内存限制，抛出异常
         if (uploadFileList.size() > redisComponent.getSysSettingDto().getVideoPCount()) {
             throw new BusinessException(ResponseCodeEnum.CODE_600);
         }
+        // 如果视频信息的主键id为不为空
         if (!StringTools.isEmpty(videoInfoPost.getVideoId())) {
             VideoInfoPost videoInfoPostDb = this.videoInfoPostMapper.selectByVideoId(videoInfoPost.getVideoId());
+            // 如果数据库没有该视频信息，无法修改
             if (videoInfoPostDb == null) {
                 throw new BusinessException(ResponseCodeEnum.CODE_600);
             }
+            // 如果视频处于转码或者待审核状态，无法进行修改
             if (ArrayUtils.contains(new Integer[]{VideoStatusEnum.STATUS0.getStatus(), VideoStatusEnum.STATUS2.getStatus()}, videoInfoPostDb.getStatus())) {
                 throw new BusinessException(ResponseCodeEnum.CODE_600);
             }
@@ -128,12 +132,15 @@ public class VideoInfoPostServiceImpl implements VideoInfoPostService {
         List<VideoInfoFilePost> deleteFileList = new ArrayList();
         List<VideoInfoFilePost> addFileList = uploadFileList;
 
+        // 如果视频信息的主键id为为空
         if (StringTools.isEmpty(videoId)) {
+            // 生成视频id
             videoId = StringTools.getRandomString(Constants.LENGTH_10);
             videoInfoPost.setVideoId(videoId);
             videoInfoPost.setCreateTime(curDate);
             videoInfoPost.setLastUpdateTime(curDate);
             videoInfoPost.setStatus(VideoStatusEnum.STATUS0.getStatus());
+            // 将该视频信息插入数据库
             this.videoInfoPostMapper.insert(videoInfoPost);
         } else {
             VideoInfoFilePostQuery fileQuery = new VideoInfoFilePostQuery();
@@ -159,12 +166,44 @@ public class VideoInfoPostServiceImpl implements VideoInfoPostService {
 
             //判断视频信息是否有更改
             Boolean changeVideoInfo = this.changeVideoInfo(videoInfoPost);
-            if (!addFileList.isEmpty()) {
+            if (!addFileList.isEmpty()) {  //如果有新增的文件，将其转码
                 videoInfoPost.setStatus(VideoStatusEnum.STATUS0.getStatus());
-            } else if (changeVideoInfo || updateFileName) {
+            } else if (changeVideoInfo || updateFileName) { //如果没有新增的文件但是文件信息有修改，将视频信息改为待审核
                 videoInfoPost.setStatus(VideoStatusEnum.STATUS2.getStatus());
             }
             this.videoInfoPostMapper.updateByVideoId(videoInfoPost, videoInfoPost.getVideoId());
+        }
+
+        //清除已经删除的数据
+        if (!deleteFileList.isEmpty()) {
+            List<String> delFileIdList = deleteFileList.stream().map(item -> item.getFileId()).collect(Collectors.toList());
+            this.videoInfoFilePostMapper.deleteBatchByFileId(delFileIdList, videoInfoPost.getUserId());
+            //将要删除的视频加入消息队列
+            List<String> delFilePathList = deleteFileList.stream().map(item -> item.getFilePath()).collect(Collectors.toList());
+            redisComponent.addFile2DelQueue(videoId, delFilePathList);
+        }
+
+        //更新视频信息
+        Integer index = 1;
+        for (VideoInfoFilePost videoInfoFile : uploadFileList) {
+            videoInfoFile.setFileIndex(index++);
+            videoInfoFile.setVideoId(videoId);
+            videoInfoFile.setUserId(videoInfoPost.getUserId());
+            if (videoInfoFile.getFileId() == null) {
+                videoInfoFile.setFileId(StringTools.getRandomString(Constants.LENGTH_20));
+                videoInfoFile.setUpdateType(VideoFileUpdateTypeEnum.UPDATE.getStatus());
+                videoInfoFile.setTransferResult(VideoFileTransferResultEnum.TRANSFER.getStatus());
+            }
+        }
+        this.videoInfoFilePostMapper.insertOrUpdateBatch(uploadFileList);
+
+        //将需要转码的视频加入队列
+        if (!addFileList.isEmpty()) {
+            for (VideoInfoFilePost file : addFileList) {
+                file.setUserId(videoInfoPost.getUserId());
+                file.setVideoId(videoId);
+            }
+            redisComponent.addFile2TransferQueue(addFileList);
         }
     }
 
