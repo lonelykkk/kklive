@@ -50,6 +50,10 @@ public class VideoInfoPostServiceImpl implements VideoInfoPostService {
     private VideoInfoPostMapper<VideoInfoPost, VideoInfoPostQuery> videoInfoPostMapper;
     @Resource
     private VideoInfoFilePostMapper<VideoInfoFilePost, VideoInfoFilePostQuery> videoInfoFilePostMapper;
+    @Resource
+    private AppConfig appConfig;
+    @Resource
+    private FFmpegUtils fFmpegUtils;
 
 
     @Override
@@ -218,10 +222,131 @@ public class VideoInfoPostServiceImpl implements VideoInfoPostService {
     }
 
     @Override
-    public void transferVideoFile(VideoInfoFilePost videoInfoFilePost) throws IOException {
+    public void transferVideoFile(VideoInfoFilePost videoInfoFile) throws IOException {
+        VideoInfoFilePost updateFilePost = new VideoInfoFilePost();
+        try {
+            // 从redis中获取需要转码的文件信息
+            UploadingFileDto fileDto = redisComponent.getUploadingVideoFile(videoInfoFile.getUserId(), videoInfoFile.getUploadId());
+            // 获取需要转码的文件的临时目录
+            String tempFIlePath = appConfig.getProjectFolder() + Constants.FILE_FOLDER + Constants.FILE_FOLDER_TEMP + fileDto.getFilePath();
+            File tempFile = new File(tempFIlePath);
 
+            // 将转码后的视频放入正式目录
+            String targetFilePath = appConfig.getProjectFolder() + Constants.FILE_FOLDER + Constants.FILE_VIDEO + fileDto.getFilePath();
+            File targetFile = new File(targetFilePath);
+            FileUtils.copyDirectory(tempFile, targetFile);
+
+            // 删除临时目录
+            FileUtils.forceDelete(tempFile);
+
+            // 删除缓存
+            redisComponent.delVideoFileInfo(videoInfoFile.getUserId(), videoInfoFile.getUploadId());
+
+            //合并文件 文件名：completeVideo
+            String completeVideo = targetFilePath + Constants.TEMP_VIDEO_NAME;
+            // 将分片合并转为mp4视频
+            this.union(targetFilePath, completeVideo, true);
+
+            // 获取播放时长--通过ffmpeg
+            Integer duration = fFmpegUtils.getVideoInfoDuration(completeVideo);
+            updateFilePost.setDuration(duration);
+            updateFilePost.setFileSize(new File(completeVideo).length());
+            updateFilePost.setFilePath(Constants.FILE_VIDEO + fileDto.getFilePath());
+            updateFilePost.setTransferResult(VideoFileTransferResultEnum.SUCCESS.getStatus());
+
+            /**
+             * ffmpeg切割文件
+             */
+            this.convertVideo2Ts(completeVideo);
+        } catch (Exception e) {
+            log.error("文件转码失败");
+            updateFilePost.setTransferResult(VideoFileTransferResultEnum.FAIL.getStatus());
+        }finally {
+            //更新文件状态
+            videoInfoFilePostMapper.updateByUploadIdAndUserId(updateFilePost, videoInfoFile.getUploadId(), videoInfoFile.getUserId());
+            //更新视频信息
+            VideoInfoFilePostQuery fileQuery = new VideoInfoFilePostQuery();
+            fileQuery.setVideoId(videoInfoFile.getVideoId());
+            fileQuery.setTransferResult(VideoFileTransferResultEnum.FAIL.getStatus());
+            Integer failCount = videoInfoFilePostMapper.selectCount(fileQuery);
+            if (failCount > 0) {
+                VideoInfoPost videoUpdate = new VideoInfoPost();
+                videoUpdate.setStatus(VideoStatusEnum.STATUS1.getStatus());
+                videoInfoPostMapper.updateByVideoId(videoUpdate, videoInfoFile.getVideoId());
+                return;
+            }
+            fileQuery.setTransferResult(VideoFileTransferResultEnum.TRANSFER.getStatus());
+            Integer transferCount = videoInfoFilePostMapper.selectCount(fileQuery);
+            if (transferCount == 0) {
+                Integer duration = videoInfoFilePostMapper.sumDuration(videoInfoFile.getVideoId());
+                VideoInfoPost videoUpdate = new VideoInfoPost();
+                videoUpdate.setStatus(VideoStatusEnum.STATUS2.getStatus());
+                videoUpdate.setDuration(duration);
+                videoInfoPostMapper.updateByVideoId(videoUpdate, videoInfoFile.getVideoId());
+            }
+        }
     }
+    private void convertVideo2Ts(String videoFilePath) {
+        File videoFile = new File(videoFilePath);
+        //创建同名切片目录
+        File tsFolder = videoFile.getParentFile();
+        String codec = fFmpegUtils.getVideoCodec(videoFilePath);
+        //转码
+        if (Constants.VIDEO_CODE_HEVC.equals(codec)) {
+            String tempFileName = videoFilePath + Constants.VIDEO_CODE_TEMP_FILE_SUFFIX;
+            new File(videoFilePath).renameTo(new File(tempFileName));
+            fFmpegUtils.convertHevc2Mp4(tempFileName, videoFilePath);
+            new File(tempFileName).delete();
+        }
 
+        //视频转为ts
+        fFmpegUtils.convertVideo2Ts(tsFolder, videoFilePath);
+
+        //删除视频文件
+        videoFile.delete();
+    }
+    /**
+     * 将视频分片文件合并
+     * @param dirPath
+     * @param toFilePath
+     * @param delSource
+     */
+    private void union(String dirPath, String toFilePath, Boolean delSource) {
+        File dir = new File(dirPath);
+        if (!dir.exists()) {
+            throw new BusinessException("目录不存在");
+        }
+        File fileList[] = dir.listFiles();
+        File targetFile = new File(toFilePath);
+        try (RandomAccessFile writeFile = new RandomAccessFile(targetFile, "rw")) {
+            byte[] b = new byte[1024 * 10];
+            for (int i = 0; i < fileList.length; i++) {
+                int len = -1;
+                //创建读块文件的对象
+                File chunkFile = new File(dirPath + File.separator + i);
+                RandomAccessFile readFile = null;
+                try {
+                    readFile = new RandomAccessFile(chunkFile, "r");
+                    while ((len = readFile.read(b)) != -1) {
+                        writeFile.write(b, 0, len);
+                    }
+                } catch (Exception e) {
+                    log.error("合并分片失败", e);
+                    throw new BusinessException("合并文件失败");
+                } finally {
+                    readFile.close();
+                }
+            }
+        } catch (Exception e) {
+            throw new BusinessException("合并文件" + dirPath + "出错了");
+        } finally {
+            if (delSource) {
+                for (int i = 0; i < fileList.length; i++) {
+                    fileList[i].delete();
+                }
+            }
+        }
+    }
     @Override
     public void auditVideo(String videoId, Integer status, String reason) {
 

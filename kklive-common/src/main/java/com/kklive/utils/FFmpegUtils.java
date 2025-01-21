@@ -44,6 +44,11 @@ public class FFmpegUtils {
         return codec;
     }
 
+    /**
+     * 视频转码
+     * @param newFileName
+     * @param videoFilePath
+     */
     public void convertHevc2Mp4(String newFileName, String videoFilePath) {
         String CMD_HEVC_264 = "ffmpeg -i %s -c:v libx264 -crf 20 %s";
         String cmd = String.format(CMD_HEVC_264, newFileName, videoFilePath);
