@@ -37,8 +37,6 @@ public class ExecuteQueueTask {
     @Resource
     private VideoInfoService videoInfoService;
 
-    @Resource
-    private VideoPlayHistoryService videoPlayHistoryService;
 
     @PostConstruct
     public void consumeTransferFileQueue() {

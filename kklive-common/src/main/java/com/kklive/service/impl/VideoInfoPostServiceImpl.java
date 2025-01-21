@@ -63,12 +63,19 @@ public class VideoInfoPostServiceImpl implements VideoInfoPostService {
 
     @Override
     public Integer findCountByParam(VideoInfoPostQuery param) {
-        return null;
+        return this.videoInfoPostMapper.selectCount(param);
     }
 
     @Override
     public PaginationResultVO<VideoInfoPost> findListByPage(VideoInfoPostQuery param) {
-        return null;
+        int count = this.findCountByParam(param);
+        int pageSize = param.getPageSize() == null ? PageSize.SIZE15.getSize() : param.getPageSize();
+
+        SimplePage page = new SimplePage(param.getPageNo(), count, pageSize);
+        param.setSimplePage(page);
+        List<VideoInfoPost> list = this.findListByParam(param);
+        PaginationResultVO<VideoInfoPost> result = new PaginationResultVO(count, page.getPageSize(), page.getPageNo(), page.getPageTotal(), list);
+        return result;
     }
 
     @Override
@@ -234,6 +241,9 @@ public class VideoInfoPostServiceImpl implements VideoInfoPostService {
             // 将转码后的视频放入正式目录
             String targetFilePath = appConfig.getProjectFolder() + Constants.FILE_FOLDER + Constants.FILE_VIDEO + fileDto.getFilePath();
             File targetFile = new File(targetFilePath);
+            if (!targetFile.exists()) {
+                targetFile.mkdirs();
+            }
             FileUtils.copyDirectory(tempFile, targetFile);
 
             // 删除临时目录

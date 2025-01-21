@@ -1,9 +1,13 @@
 package com.kklive.web.controller;
 
 import com.kklive.entity.dto.TokenUserInfoDto;
+import com.kklive.entity.enums.VideoStatusEnum;
 import com.kklive.entity.po.VideoInfoFilePost;
 import com.kklive.entity.po.VideoInfoPost;
+import com.kklive.entity.query.VideoInfoPostQuery;
+import com.kklive.entity.vo.PaginationResultVO;
 import com.kklive.entity.vo.ResponseVO;
+import com.kklive.entity.vo.VideoStatusCountInfoVO;
 import com.kklive.service.VideoInfoFilePostService;
 import com.kklive.service.VideoInfoPostService;
 import com.kklive.service.VideoInfoService;
@@ -58,5 +62,47 @@ public class UCenterVideoPostController extends ABaseController {
 
         videoInfoPostService.saveVideoInfo(videoInfo, fileInfoList);
         return getSuccessResponseVO(null);
+    }
+
+    @RequestMapping("/loadVideoList")
+    public ResponseVO loadVideoList(Integer status, Integer pageNo, String videoNameFuzzy) {
+        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
+        VideoInfoPostQuery videoInfoQuery = new VideoInfoPostQuery();
+        videoInfoQuery.setUserId(tokenUserInfoDto.getUserId());
+        videoInfoQuery.setOrderBy("v.create_time desc");
+        videoInfoQuery.setPageNo(pageNo);
+        if (status != null) {
+            if (status == -1) {
+                videoInfoQuery.setExcludeStatusArray(new Integer[]{VideoStatusEnum.STATUS3.getStatus(), VideoStatusEnum.STATUS4.getStatus()});
+            } else {
+                videoInfoQuery.setStatus(status);
+            }
+        }
+        videoInfoQuery.setVideoNameFuzzy(videoNameFuzzy);
+        videoInfoQuery.setQueryCountInfo(true);
+        PaginationResultVO resultVO = videoInfoPostService.findListByPage(videoInfoQuery);
+        return getSuccessResponseVO(resultVO);
+    }
+
+    @RequestMapping("/getVideoCountInfo")
+    public ResponseVO getVideoCountInfo() {
+        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
+        VideoInfoPostQuery videoInfoQuery = new VideoInfoPostQuery();
+        videoInfoQuery.setUserId(tokenUserInfoDto.getUserId());
+        videoInfoQuery.setStatus(VideoStatusEnum.STATUS3.getStatus());
+
+        Integer auditPassCount = videoInfoPostService.findCountByParam(videoInfoQuery);
+        videoInfoQuery.setStatus(VideoStatusEnum.STATUS4.getStatus());
+        Integer auditFailCount = videoInfoPostService.findCountByParam(videoInfoQuery);
+
+        videoInfoQuery.setStatus(null);
+        videoInfoQuery.setExcludeStatusArray(new Integer[]{VideoStatusEnum.STATUS3.getStatus(), VideoStatusEnum.STATUS4.getStatus()});
+        Integer inProgress = videoInfoPostService.findCountByParam(videoInfoQuery);
+
+        VideoStatusCountInfoVO countInfo = new VideoStatusCountInfoVO();
+        countInfo.setAuditPassCount(auditPassCount);
+        countInfo.setAuditFailCount(auditFailCount);
+        countInfo.setInProgress(inProgress);
+        return getSuccessResponseVO(countInfo);
     }
 }
