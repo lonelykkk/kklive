@@ -34,20 +34,29 @@ import java.util.concurrent.Executors;
 public class VideoInfoServiceImpl implements VideoInfoService {
 
     private static ExecutorService executorService = Executors.newFixedThreadPool(10);
+    @Resource
+    private VideoInfoMapper<VideoInfo, VideoInfoQuery> videoInfoMapper;
 
     @Override
     public List<VideoInfo> findListByParam(VideoInfoQuery param) {
-        return null;
+        return this.videoInfoMapper.selectList(param);
     }
 
     @Override
     public Integer findCountByParam(VideoInfoQuery param) {
-        return null;
+        return this.videoInfoMapper.selectCount(param);
     }
 
     @Override
     public PaginationResultVO<VideoInfo> findListByPage(VideoInfoQuery param) {
-        return null;
+        int count = this.findCountByParam(param);
+        int pageSize = param.getPageSize() == null ? PageSize.SIZE15.getSize() : param.getPageSize();
+
+        SimplePage page = new SimplePage(param.getPageNo(), count, pageSize);
+        param.setSimplePage(page);
+        List<VideoInfo> list = this.findListByParam(param);
+        PaginationResultVO<VideoInfo> result = new PaginationResultVO(count, page.getPageSize(), page.getPageNo(), page.getPageTotal(), list);
+        return result;
     }
 
     @Override
