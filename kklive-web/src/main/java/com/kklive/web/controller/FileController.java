@@ -6,16 +6,20 @@ import com.kklive.entity.constants.Constants;
 import com.kklive.entity.dto.SysSettingDto;
 import com.kklive.entity.dto.TokenUserInfoDto;
 import com.kklive.entity.dto.UploadingFileDto;
+import com.kklive.entity.dto.VideoPlayInfoDto;
 import com.kklive.entity.enums.DateTimePatternEnum;
 import com.kklive.entity.enums.ResponseCodeEnum;
+import com.kklive.entity.po.VideoInfoFile;
 import com.kklive.entity.vo.ResponseVO;
 import com.kklive.exception.BusinessException;
+import com.kklive.service.VideoInfoFileService;
 import com.kklive.utils.DateUtil;
 import com.kklive.utils.FFmpegUtils;
 import com.kklive.utils.StringTools;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -44,6 +48,9 @@ import static com.kklive.web.controller.ABaseController.STATUC_SUCCESS;
 @RestController
 @RequestMapping("/file")
 public class FileController extends ABaseController {
+
+    @Resource
+    private VideoInfoFileService videoInfoFileService;
     @Resource
     private AppConfig appConfig;
     @Resource
@@ -166,5 +173,30 @@ public class FileController extends ABaseController {
             fFmpegUtils.createImageThumbnail(filePath);
         }
         return getSuccessResponseVO(Constants.FILE_COVER + day + "/" + realFileName);
+    }
+
+    @RequestMapping("/videoResource/{fileId}")
+    public void getVideoResource(HttpServletResponse response, @PathVariable @NotEmpty String fileId) {
+        VideoInfoFile videoInfoFile = videoInfoFileService.getVideoInfoFileByFileId(fileId);
+        String filePath = videoInfoFile.getFilePath();
+        readFile(response, filePath + "/" + Constants.M3U8_NAME);
+
+        // 更新视频阅读信息
+        VideoPlayInfoDto videoPlayInfoDto = new VideoPlayInfoDto();
+        videoPlayInfoDto.setVideoId(videoInfoFile.getVideoId());
+        videoPlayInfoDto.setFileIndex(videoInfoFile.getFileIndex());
+
+        TokenUserInfoDto tokenUserInfoDto = getTokenInfoFromCookie();
+        if (tokenUserInfoDto != null) {
+            videoPlayInfoDto.setUserId(tokenUserInfoDto.getUserId());
+        }
+        redisComponent.addVideoPlay(videoPlayInfoDto);
+    }
+
+    @RequestMapping("/videoResource/{fileId}/{ts}")
+    public void getVideoResourceTs(HttpServletResponse response, @PathVariable @NotEmpty String fileId, @PathVariable @NotNull String ts) {
+        VideoInfoFile videoInfoFile = videoInfoFileService.getVideoInfoFileByFileId(fileId);
+        String filePath = videoInfoFile.getFilePath();
+        readFile(response, filePath + "/" + ts);
     }
 }

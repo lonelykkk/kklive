@@ -233,7 +233,7 @@ public class VideoInfoPostServiceImpl implements VideoInfoPostService {
         return false;
     }
 
-    @Override
+    /*@Override
     public void transferVideoFile(VideoInfoFilePost videoInfoFile) throws IOException {
         VideoInfoFilePost updateFilePost = new VideoInfoFilePost();
         try {
@@ -269,9 +269,9 @@ public class VideoInfoPostServiceImpl implements VideoInfoPostService {
             updateFilePost.setFilePath(Constants.FILE_VIDEO + fileDto.getFilePath());
             updateFilePost.setTransferResult(VideoFileTransferResultEnum.SUCCESS.getStatus());
 
-            /**
+            *//**
              * ffmpeg切割文件
-             */
+             *//*
             this.convertVideo2Ts(completeVideo);
         } catch (Exception e) {
             log.error("文件转码失败");
@@ -300,7 +300,81 @@ public class VideoInfoPostServiceImpl implements VideoInfoPostService {
                 videoInfoPostMapper.updateByVideoId(videoUpdate, videoInfoFile.getVideoId());
             }
         }
+    }*/
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void transferVideoFile(VideoInfoFilePost videoInfoFile) {
+        VideoInfoFilePost updateFilePost = new VideoInfoFilePost();
+        try {
+            UploadingFileDto fileDto = redisComponent.getUploadingVideoFile(videoInfoFile.getUserId(), videoInfoFile.getUploadId());
+            /**
+             * 拷贝文件到正式目录
+             */
+            String tempFilePath = appConfig.getProjectFolder() + Constants.FILE_FOLDER + Constants.FILE_FOLDER_TEMP + fileDto.getFilePath();
+
+            File tempFile = new File(tempFilePath);
+
+            String targetFilePath = appConfig.getProjectFolder() + Constants.FILE_FOLDER + Constants.FILE_VIDEO + fileDto.getFilePath();
+            File taregetFile = new File(targetFilePath);
+            if (!taregetFile.exists()) {
+                taregetFile.mkdirs();
+            }
+            FileUtils.copyDirectory(tempFile, taregetFile);
+
+            /**
+             * 删除临时目录
+             */
+            FileUtils.forceDelete(tempFile);
+            redisComponent.delVideoFileInfo(videoInfoFile.getUserId(), videoInfoFile.getUploadId());
+
+            /**
+             * 合并文件
+             */
+            String completeVideo = targetFilePath + Constants.TEMP_VIDEO_NAME;
+            this.union(targetFilePath, completeVideo, true);
+
+            /**
+             * 获取播放时长
+             */
+            Integer duration = fFmpegUtils.getVideoInfoDuration(completeVideo);
+            updateFilePost.setDuration(duration);
+            updateFilePost.setFileSize(new File(completeVideo).length());
+            updateFilePost.setFilePath(Constants.FILE_VIDEO + fileDto.getFilePath());
+            updateFilePost.setTransferResult(VideoFileTransferResultEnum.SUCCESS.getStatus());
+
+            /**
+             * ffmpeg切割文件
+             */
+            this.convertVideo2Ts(completeVideo);
+        } catch (Exception e) {
+            log.error("文件转码失败", e);
+            updateFilePost.setTransferResult(VideoFileTransferResultEnum.FAIL.getStatus());
+        } finally {
+            //更新文件状态
+            videoInfoFilePostMapper.updateByUploadIdAndUserId(updateFilePost, videoInfoFile.getUploadId(), videoInfoFile.getUserId());
+            //更新视频信息
+            VideoInfoFilePostQuery fileQuery = new VideoInfoFilePostQuery();
+            fileQuery.setVideoId(videoInfoFile.getVideoId());
+            fileQuery.setTransferResult(VideoFileTransferResultEnum.FAIL.getStatus());
+            Integer failCount = videoInfoFilePostMapper.selectCount(fileQuery);
+            if (failCount > 0) {
+                VideoInfoPost videoUpdate = new VideoInfoPost();
+                videoUpdate.setStatus(VideoStatusEnum.STATUS1.getStatus());
+                videoInfoPostMapper.updateByVideoId(videoUpdate, videoInfoFile.getVideoId());
+                return;
+            }
+            fileQuery.setTransferResult(VideoFileTransferResultEnum.TRANSFER.getStatus());
+            Integer transferCount = videoInfoFilePostMapper.selectCount(fileQuery);
+            if (transferCount == 0) {
+                Integer duration = videoInfoFilePostMapper.sumDuration(videoInfoFile.getVideoId());
+                VideoInfoPost videoUpdate = new VideoInfoPost();
+                videoUpdate.setStatus(VideoStatusEnum.STATUS2.getStatus());
+                videoUpdate.setDuration(duration);
+                videoInfoPostMapper.updateByVideoId(videoUpdate, videoInfoFile.getVideoId());
+            }
+        }
     }
+
     private void convertVideo2Ts(String videoFilePath) {
         File videoFile = new File(videoFilePath);
         //创建同名切片目录
