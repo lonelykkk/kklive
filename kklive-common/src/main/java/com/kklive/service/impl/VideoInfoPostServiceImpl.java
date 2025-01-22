@@ -51,14 +51,19 @@ public class VideoInfoPostServiceImpl implements VideoInfoPostService {
     @Resource
     private VideoInfoFilePostMapper<VideoInfoFilePost, VideoInfoFilePostQuery> videoInfoFilePostMapper;
     @Resource
+    private VideoInfoFileMapper<VideoInfoFile, VideoInfoFileQuery> videoInfoFileMapper;
+    @Resource
     private AppConfig appConfig;
     @Resource
     private FFmpegUtils fFmpegUtils;
+    @Resource
+    private VideoInfoMapper<VideoInfo, VideoInfoQuery> videoInfoMapper;
 
 
     @Override
     public List<VideoInfoPost> findListByParam(VideoInfoPostQuery param) {
-        return null;
+        List<VideoInfoPost> dataList = this.videoInfoPostMapper.selectList(param);
+        return dataList;
     }
 
     @Override
@@ -359,7 +364,86 @@ public class VideoInfoPostServiceImpl implements VideoInfoPostService {
     }
     @Override
     public void auditVideo(String videoId, Integer status, String reason) {
+        VideoStatusEnum videoStatusEnum = VideoStatusEnum.getByStatus(status);
+        if (videoStatusEnum == null) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        }
+        VideoInfoPost videoInfoPost = new VideoInfoPost();
+        videoInfoPost.setStatus(status);
 
+        VideoInfoPostQuery videoInfoPostQuery = new VideoInfoPostQuery();
+        videoInfoPostQuery.setStatus(VideoStatusEnum.STATUS2.getStatus());
+        videoInfoPostQuery.setVideoId(videoId);
+        Integer audioCount = this.videoInfoPostMapper.updateByParam(videoInfoPost, videoInfoPostQuery);
+        if (audioCount == 0) {
+            throw new BusinessException("审核失败，请稍后重试");
+        }
+
+        /**
+         * 更新视频状态
+         */
+        VideoInfoFilePost videoInfoFilePost = new VideoInfoFilePost();
+        videoInfoFilePost.setUpdateType(VideoFileUpdateTypeEnum.NO_UPDATE.getStatus());
+
+        VideoInfoFilePostQuery filePostQuery = new VideoInfoFilePostQuery();
+        filePostQuery.setVideoId(videoId);
+        this.videoInfoFilePostMapper.updateByParam(videoInfoFilePost, filePostQuery);
+
+        if (VideoStatusEnum.STATUS4 == videoStatusEnum) {
+            return;
+        }
+        VideoInfoPost infoPost = this.videoInfoPostMapper.selectByVideoId(videoId);
+
+        VideoInfo dbVideoInfo = this.videoInfoMapper.selectByVideoId(videoId);
+
+        // TODO 给用户加硬币
+        if (dbVideoInfo == null) {
+            // 如果是第一次发布增加用户积分
+            SysSettingDto sysSettingDto = redisComponent.getSysSettingDto();
+        }
+
+        /**
+         * 审核通过后将发布信息复制到正式表信息
+         */
+        VideoInfo videoInfo = CopyTools.copy(infoPost, VideoInfo.class);
+        this.videoInfoMapper.insertOrUpdate(videoInfo);
+
+        /**
+         * 更新视频信息 先删除再添加
+         */
+        VideoInfoFileQuery videoInfoFileQuery = new VideoInfoFileQuery();
+        videoInfoFileQuery.setVideoId(videoId);
+        this.videoInfoFileMapper.deleteByParam(videoInfoFileQuery);
+
+        /**
+         * 查询发布表中的视频信息
+         */
+        VideoInfoFilePostQuery videoInfoFilePostQuery = new VideoInfoFilePostQuery();
+        videoInfoFilePostQuery.setVideoId(videoId);
+        List<VideoInfoFilePost> videoInfoFilePostList = this.videoInfoFilePostMapper.selectList(videoInfoFilePostQuery);
+
+        List<VideoInfoFile> videoInfoFileList = CopyTools.copyList(videoInfoFilePostList, VideoInfoFile.class);
+        this.videoInfoFileMapper.insertBatch(videoInfoFileList);
+
+        /**
+         * 删除文件
+         */
+        List<String> filePathList = redisComponent.getDelFileList(videoId);
+        if (filePathList != null) {
+            for (String path : filePathList) {
+                File file = new File(appConfig.getProjectFolder() + Constants.FILE_FOLDER + path);
+                if (file.exists()) {
+                    try {
+                        FileUtils.deleteDirectory(file);
+                    } catch (IOException e) {
+                        log.error("删除文件失败", e);
+                    }
+                }
+            }
+        }
+        redisComponent.cleanDelFileList(videoId);
+
+        // TODO 保存信息到es
     }
 
     @Override
