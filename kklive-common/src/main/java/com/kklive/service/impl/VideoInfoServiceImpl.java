@@ -86,7 +86,7 @@ public class VideoInfoServiceImpl implements VideoInfoService {
 
     @Override
     public VideoInfo getVideoInfoByVideoId(String videoId) {
-        return null;
+        return this.videoInfoMapper.selectByVideoId(videoId);
     }
 
     @Override
