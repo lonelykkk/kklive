@@ -46,6 +46,8 @@ public class VideoController extends ABaseController {
 
     @Resource
     private VideoInfoFileService videoInfoFileService;
+    @Resource
+    private UserActionService userActionService;
 
     @Resource
     private RedisComponent redisComponent;
@@ -98,10 +100,15 @@ public class VideoController extends ABaseController {
 
         List<UserAction> userActionList = new ArrayList<>();
         if (userInfoDto != null) {
-
+            UserActionQuery actionQuery = new UserActionQuery();
+            actionQuery.setVideoId(videoId);
+            actionQuery.setUserId(userInfoDto.getUserId());
+            actionQuery.setActionTypeArray(new Integer[]{UserActionTypeEnum.VIDEO_LIKE.getType(), UserActionTypeEnum.VIDEO_COLLECT.getType(),
+                    UserActionTypeEnum.VIDEO_COIN.getType(),});
+            userActionList = userActionService.findListByParam(actionQuery);
         }
 
-        // TODO 获取用户行为、点赞、投币、收藏
+        // 获取用户行为、点赞、投币、收藏
         VideoInfoResultVo resultVo = new VideoInfoResultVo();
         resultVo.setVideoInfo(CopyTools.copy(videoInfo, VideoInfoVo.class));
         resultVo.setUserActionList(userActionList);
