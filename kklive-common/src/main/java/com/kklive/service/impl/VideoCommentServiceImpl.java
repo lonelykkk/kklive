@@ -34,20 +34,44 @@ import java.util.List;
 @Service("videoCommentService")
 public class VideoCommentServiceImpl implements VideoCommentService {
 
+    @Resource
+    private VideoCommentMapper<VideoComment, VideoCommentQuery> videoCommentMapper;
+
+    @Resource
+    private UserInfoMapper<UserInfo, UserInfoQuery> userInfoMapper;
+
+    @Resource
+    private VideoInfoMapper<VideoInfo, VideoInfoQuery> videoInfoMapper;
 
     @Override
     public List<VideoComment> findListByParam(VideoCommentQuery param) {
-        return null;
+        if (param.getLoadChildren() != null && param.getLoadChildren()) {
+            return this.videoCommentMapper.selectListWithChildren(param);
+        }
+        return this.videoCommentMapper.selectList(param);
     }
 
+    /**
+     * 根据条件查询列表
+     */
     @Override
     public Integer findCountByParam(VideoCommentQuery param) {
-        return null;
+        return this.videoCommentMapper.selectCount(param);
     }
 
+    /**
+     * 分页查询方法
+     */
     @Override
     public PaginationResultVO<VideoComment> findListByPage(VideoCommentQuery param) {
-        return null;
+        int count = this.findCountByParam(param);
+        int pageSize = param.getPageSize() == null ? PageSize.SIZE15.getSize() : param.getPageSize();
+
+        SimplePage page = new SimplePage(param.getPageNo(), count, pageSize);
+        param.setSimplePage(page);
+        List<VideoComment> list = this.findListByParam(param);
+        PaginationResultVO<VideoComment> result = new PaginationResultVO(count, page.getPageSize(), page.getPageNo(), page.getPageTotal(), list);
+        return result;
     }
 
     @Override
@@ -92,7 +116,38 @@ public class VideoCommentServiceImpl implements VideoCommentService {
 
     @Override
     public void postComment(VideoComment comment, Integer replyCommentId) {
-
+        VideoInfo videoInfo = videoInfoMapper.selectByVideoId(comment.getVideoId());
+        if (videoInfo == null) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        }
+        //是否关闭评论
+        if (videoInfo.getInteraction() != null && videoInfo.getInteraction().contains(Constants.ZERO.toString())) {
+            throw new BusinessException("UP主已关闭评论区");
+        }
+        if (replyCommentId != null) {
+            VideoComment replyComment = getVideoCommentByCommentId(replyCommentId);
+            if (replyComment == null || !replyComment.getVideoId().equals(comment.getVideoId())) {
+                throw new BusinessException(ResponseCodeEnum.CODE_600);
+            }
+            if (replyComment.getpCommentId() == 0) {
+                comment.setpCommentId(replyComment.getCommentId());
+            } else {
+                comment.setpCommentId(replyComment.getpCommentId());
+                comment.setReplyUserId(replyComment.getUserId());
+            }
+            UserInfo userInfo = userInfoMapper.selectByUserId(replyComment.getUserId());
+            comment.setReplyNickName(userInfo.getNickName());
+            comment.setReplyAvatar(userInfo.getAvatar());
+        } else {
+            comment.setpCommentId(0);
+        }
+        comment.setPostTime(new Date());
+        comment.setVideoUserId(videoInfo.getUserId());
+        this.videoCommentMapper.insert(comment);
+        //增加评论数
+        if (comment.getpCommentId() == 0) {
+            this.videoInfoMapper.updateCountInfo(comment.getVideoId(), UserActionTypeEnum.VIDEO_COMMENT.getField(), 1);
+        }
     }
 
     @Override
