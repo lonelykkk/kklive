@@ -101,7 +101,7 @@ public class VideoCommentServiceImpl implements VideoCommentService {
 
     @Override
     public VideoComment getVideoCommentByCommentId(Integer commentId) {
-        return null;
+        return this.videoCommentMapper.selectByCommentId(commentId);
     }
 
     @Override
@@ -157,7 +157,10 @@ public class VideoCommentServiceImpl implements VideoCommentService {
 
     @Override
     public void topComment(Integer commentId, String userId) {
-
+        this.cancelTopComment(commentId, userId);
+        VideoComment videoComment = new VideoComment();
+        videoComment.setTopType(CommentTopTypeEnum.TOP.getType());
+        videoCommentMapper.updateByCommentId(videoComment, commentId);
     }
 
     @Override
