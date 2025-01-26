@@ -169,7 +169,7 @@ public class UserActionServiceImpl implements UserActionService {
                 userActionMapper.insert(bean);
                 videoInfoMapper.updateCountInfo(bean.getVideoId(), actionTypeEnum.getField(), bean.getActionCount());
                 break;
-            //评论
+            // 评论
             case COMMENT_LIKE:
             case COMMENT_HATE:
                 UserActionTypeEnum opposeTypeEnum = UserActionTypeEnum.COMMENT_LIKE == actionTypeEnum ? UserActionTypeEnum.COMMENT_HATE : UserActionTypeEnum.COMMENT_LIKE;

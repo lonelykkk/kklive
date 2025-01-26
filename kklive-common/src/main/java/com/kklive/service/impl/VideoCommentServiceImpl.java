@@ -152,10 +152,31 @@ public class VideoCommentServiceImpl implements VideoCommentService {
 
     @Override
     public void deleteComment(Integer commentId, String userId) {
+        VideoComment comment = videoCommentMapper.selectByCommentId(commentId);
+        if (null == comment) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        }
 
+        VideoInfo videoInfo = videoInfoMapper.selectByVideoId(comment.getVideoId());
+        if (null == videoInfo) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        }
+
+        if (userId != null && !videoInfo.getUserId().equals(userId) && !comment.getUserId().equals(userId)) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        }
+        videoCommentMapper.deleteByCommentId(commentId);
+        if (comment.getpCommentId() == 0) {
+            videoInfoMapper.updateCountInfo(videoInfo.getVideoId(), UserActionTypeEnum.VIDEO_COMMENT.getField(), -1);
+            //删除二级评论
+            VideoCommentQuery videoCommentQuery = new VideoCommentQuery();
+            videoCommentQuery.setpCommentId(commentId);
+            videoCommentMapper.deleteByParam(videoCommentQuery);
+        }
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void topComment(Integer commentId, String userId) {
         this.cancelTopComment(commentId, userId);
         VideoComment videoComment = new VideoComment();
@@ -165,6 +186,25 @@ public class VideoCommentServiceImpl implements VideoCommentService {
 
     @Override
     public void cancelTopComment(Integer commentId, String userId) {
+        //现清除之前的指定
+        VideoComment dbVideoComment = videoCommentMapper.selectByCommentId(commentId);
+        if (dbVideoComment == null) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        }
+        VideoInfo videoInfo = videoInfoMapper.selectByVideoId(dbVideoComment.getVideoId());
+        if (videoInfo == null) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        }
+        if (!videoInfo.getUserId().equals(userId)) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        }
 
+        VideoComment videoComment = new VideoComment();
+        videoComment.setTopType(CommentTopTypeEnum.NO_TOP.getType());
+
+        VideoCommentQuery videoCommentQuery = new VideoCommentQuery();
+        videoCommentQuery.setVideoId(dbVideoComment.getVideoId());
+        videoCommentQuery.setTopType(CommentTopTypeEnum.TOP.getType());
+        videoCommentMapper.updateByParam(videoComment, videoCommentQuery);
     }
 }
