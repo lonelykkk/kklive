@@ -148,6 +148,7 @@ public class UserActionServiceImpl implements UserActionService {
                    // esSearchComponent.updateDocCount(videoInfo.getVideoId(), SearchOrderTypeEnum.VIDEO_COLLECT.getField(), changeCount);
                 }
                 break;
+            // 投币
             case VIDEO_COIN:
                 if (videoInfo.getUserId().equals(bean.getUserId())) {
                     throw new BusinessException("UP主不能给自己投币");
@@ -160,6 +161,7 @@ public class UserActionServiceImpl implements UserActionService {
                 if (updateCount == 0) {
                     throw new BusinessException("币不够");
                 }
+                // 给up主加币
                 updateCount = userInfoMapper.updateCoinCountInfo(videoInfo.getUserId(), bean.getActionCount());
                 if (updateCount == 0) {
                     throw new BusinessException("投币失败");
