@@ -3,7 +3,7 @@
 
 ## 在线播放人数思路
 
-#### 1. 通过轮询‘’/reportVideoPlayOnline‘’ 接口实时查询在线人数
+### 1. 通过轮询‘’/reportVideoPlayOnline‘’ 接口实时查询在线人数
 
 ```java
 @RequestMapping("/reportVideoPlayOnline")
@@ -13,7 +13,7 @@
     }
 ```
 
-####  2.设置两个key，如果有用户在线观看，总数+1，延长key的过期时间，此方法对于用户在线观看人数只增不减
+###  2.设置两个key，如果有用户在线观看，总数+1，延长key的过期时间，此方法对于用户在线观看人数只增不减
 
 ```java
 public Integer reportVideoPlayOnline(String fileId, String deviceId) {
@@ -35,9 +35,9 @@ public Integer reportVideoPlayOnline(String fileId, String deviceId) {
     }
 ```
 
-###### **核心逻辑解析**
+#### **核心逻辑解析**
 
-######## **1. 数据结构设计**
+##### **1. 数据结构设计**
 
 - **用户播放键 (userPlayOnlineKey)**
 	格式：`Constants.REDIS_KEY_VIDEO_PLAY_COUNT_USER` + `fileId` + `deviceId`
@@ -50,7 +50,7 @@ public Integer reportVideoPlayOnline(String fileId, String deviceId) {
 
 ------
 
-######## **2. 执行流程**
+##### **2. 执行流程**
 
 1. **首次播放**
 	- 当用户首次播放时（`userPlayOnlineKey`不存在）：
@@ -64,7 +64,7 @@ public Integer reportVideoPlayOnline(String fileId, String deviceId) {
 
 
 
-#### 3. 监听key过期状态
+### 3. 监听key过期状态
 
 ```java
 @Component
@@ -95,9 +95,9 @@ public class RedisKeyExpirationListener extends KeyExpirationEventMessageListene
 }
 ```
 
-###### **核心逻辑解析**
+#### **核心逻辑解析**
 
-######## **1. 功能描述**
+##### **1. 功能描述**
 
 - **监听Redis键过期事件**
 	当Redis中的某个键过期时，会触发 `onMessage` 方法。
@@ -108,7 +108,7 @@ public class RedisKeyExpirationListener extends KeyExpirationEventMessageListene
 
 ------
 
-######## **2. 执行流程**
+##### **2. 执行流程**
 
 1. **获取过期键**
 	- 从 `message` 中提取过期的键（`key`）。
@@ -123,9 +123,9 @@ public class RedisKeyExpirationListener extends KeyExpirationEventMessageListene
 
 ------
 
-###### **代码细节分析**
+#### **代码细节分析**
 
-######## **1. 键的格式**
+##### **1. 键的格式**
 
 - **过期键的格式**
 	假设 `Constants.REDIS_KEY_VIDEO_PLAY_COUNT_USER_PREFIX` 为 `user:play:`，`Constants.REDIS_KEY_VIDEO_PLAY_COUNT_ONLINE_PREIFX` 为 `video:online:`，则过期键的格式为：
@@ -136,7 +136,7 @@ public class RedisKeyExpirationListener extends KeyExpirationEventMessageListene
 	- `userKeyIndex` 是 `user:play:` 的结束位置。
 	- 从 `userKeyIndex` 开始，提取20个字符作为 `fileId`。
 
-######## **2. 减少在线播放数**
+##### **2. 减少在线播放数**
 
 - **`decrementPlayOnlineCount` 方法**
 	该方法应实现以下功能：
