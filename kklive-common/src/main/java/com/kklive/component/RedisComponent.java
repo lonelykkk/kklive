@@ -170,7 +170,15 @@ public class RedisComponent {
     }
 
 
+    /**
+     * 通过轮询监听在线用户
+     * @param fileId
+     * @param deviceId
+     * @return
+     */
     public Integer reportVideoPlayOnline(String fileId, String deviceId) {
+        // 用户播放键 (userPlayOnlineKey)
+        // 在线总数键 (playOnlineCountKey)
         String userPlayOnlineKey = String.format(Constants.REDIS_KEY_VIDEO_PLAY_COUNT_USER, fileId, deviceId);
         String playOnlineCountKey = String.format(Constants.REDIS_KEY_VIDEO_PLAY_COUNT_ONLINE, fileId);
 
