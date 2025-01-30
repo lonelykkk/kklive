@@ -162,6 +162,11 @@ public class UHomeVideoSeriesController extends ABaseController {
     }
 
 
+    /**
+     * 查询集合视频列表，一次只查5条
+     * @param userId
+     * @return
+     */
     @RequestMapping("/loadVideoSeriesWithVideo")
     public ResponseVO loadVideoSeriesWithVideo(@NotEmpty String userId) {
         UserVideoSeriesQuery seriesQuery = new UserVideoSeriesQuery();
