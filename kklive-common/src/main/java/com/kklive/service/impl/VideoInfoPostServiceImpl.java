@@ -110,7 +110,7 @@ public class VideoInfoPostServiceImpl implements VideoInfoPostService {
 
     @Override
     public VideoInfoPost getVideoInfoPostByVideoId(String videoId) {
-        return null;
+        return this.videoInfoPostMapper.selectByVideoId(videoId);
     }
 
     @Override
@@ -225,7 +225,7 @@ public class VideoInfoPostServiceImpl implements VideoInfoPostService {
 
     private boolean changeVideoInfo(VideoInfoPost videoInfoPost) {
         VideoInfoPost dbInfo = this.videoInfoPostMapper.selectByVideoId(videoInfoPost.getVideoId());
-        //标题，封面，标签，简介
+        // 标题，封面，标签，简介
         if (!videoInfoPost.getVideoCover().equals(dbInfo.getVideoCover()) || !videoInfoPost.getVideoName().equals(dbInfo.getVideoName()) || !videoInfoPost.getTags().equals(dbInfo.getTags()) || !videoInfoPost.getIntroduction().equals(
                 dbInfo.getIntroduction())) {
             return true;
