@@ -211,6 +211,12 @@ public class UserVideoSeriesServiceImpl implements UserVideoSeriesService {
         this.userVideoSeriesVideoMapper.insertOrUpdateBatch(seriesVideoList);
     }
 
+    /**
+     * 删除集合
+     * @param userId
+     * @param seriesId
+     * @param videoId
+     */
     @Override
     public void delSeriesVideo(String userId, Integer seriesId, String videoId) {
         UserVideoSeriesVideoQuery videoSeriesVideoQuery = new UserVideoSeriesVideoQuery();

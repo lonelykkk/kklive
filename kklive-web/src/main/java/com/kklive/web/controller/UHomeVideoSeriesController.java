@@ -86,6 +86,11 @@ public class UHomeVideoSeriesController extends ABaseController {
         return getSuccessResponseVO(videoInfoList);
     }
 
+    /**
+     * 获取视频详情
+     * @param seriesId
+     * @return
+     */
     @RequestMapping("/getVideoSeriesDetail")
     public ResponseVO getVideoSeriesDetail(@NotNull Integer seriesId) {
         UserVideoSeries videoSeries = userVideoSeriesService.getUserVideoSeriesBySeriesId(seriesId);
