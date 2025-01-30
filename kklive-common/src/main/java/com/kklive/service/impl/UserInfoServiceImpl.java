@@ -93,12 +93,12 @@ public class UserInfoServiceImpl implements UserInfoService {
 
     @Override
     public UserInfo getUserInfoByUserId(String userId) {
-        return null;
+        return this.userInfoMapper.selectByUserId(userId);
     }
 
     @Override
     public Integer updateUserInfoByUserId(UserInfo bean, String userId) {
-        return null;
+        return this.userInfoMapper.updateByUserId(bean, userId);
     }
 
     @Override
@@ -185,12 +185,42 @@ public class UserInfoServiceImpl implements UserInfoService {
 
     @Override
     public void updateUserInfo(UserInfo userInfo, TokenUserInfoDto tokenUserInfoDto) {
+        UserInfo dbInfo = this.userInfoMapper.selectByUserId(userInfo.getUserId());
+        if (!dbInfo.getNickName().equals(userInfo.getNickName()) && dbInfo.getCurrentCoinCount() < Constants.UPDATE_NICK_NAME_COIN) {
+            throw new BusinessException("硬币不足，无法修改昵称");
+        }
+        if (!dbInfo.getNickName().equals(userInfo.getNickName())) {
+            Integer count = this.userInfoMapper.updateCoinCountInfo(userInfo.getUserId(), -Constants.UPDATE_NICK_NAME_COIN);
+            if (count == 0) {
+                throw new BusinessException("硬币不足，无法修改昵称");
+            }
+        }
+        this.userInfoMapper.updateByUserId(userInfo, userInfo.getUserId());
 
+        Boolean updateTokenInfo = false;
+        if (!userInfo.getAvatar().equals(tokenUserInfoDto.getAvatar())) {
+            tokenUserInfoDto.setAvatar(userInfo.getAvatar());
+            updateTokenInfo = true;
+        }
+        if (!tokenUserInfoDto.getNickName().equals(userInfo.getNickName())) {
+            tokenUserInfoDto.setNickName(userInfo.getNickName());
+            updateTokenInfo = true;
+        }
+        if (updateTokenInfo) {
+            redisComponent.updateTokenInfo(tokenUserInfoDto);
+        }
     }
 
     @Override
     public UserInfo getUserDetailInfo(String currentUserId, String userId) {
-        return null;
+        UserInfo userInfo = getUserInfoByUserId(userId);
+        if (userInfo == null) {
+            throw new BusinessException(ResponseCodeEnum.CODE_404);
+        }
+        CountInfoDto countInfoDto = videoInfoMapper.selectSumCountInfo(userId);
+        CopyTools.copyProperties(countInfoDto, userInfo);
+        // TODO 粉丝相关
+        return userInfo;
     }
 
     @Override
