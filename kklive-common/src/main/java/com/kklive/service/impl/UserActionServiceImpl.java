@@ -52,12 +52,19 @@ public class UserActionServiceImpl implements UserActionService {
 
     @Override
     public Integer findCountByParam(UserActionQuery param) {
-        return null;
+        return this.userActionMapper.selectCount(param);
     }
 
     @Override
     public PaginationResultVO<UserAction> findListByPage(UserActionQuery param) {
-        return null;
+        int count = this.findCountByParam(param);
+        int pageSize = param.getPageSize() == null ? PageSize.SIZE15.getSize() : param.getPageSize();
+
+        SimplePage page = new SimplePage(param.getPageNo(), count, pageSize);
+        param.setSimplePage(page);
+        List<UserAction> list = this.findListByParam(param);
+        PaginationResultVO<UserAction> result = new PaginationResultVO(count, page.getPageSize(), page.getPageNo(), page.getPageTotal(), list);
+        return result;
     }
 
     @Override

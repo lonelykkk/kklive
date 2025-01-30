@@ -141,6 +141,12 @@ public class UHomeController extends ABaseController {
     }
 
 
+    /**
+     * 获取收藏视频信息
+     * @param userId
+     * @param pageNo
+     * @return
+     */
     @RequestMapping("/loadUserCollection")
     public ResponseVO loadUserCollection(@NotEmpty String userId, Integer pageNo) {
         UserActionQuery actionQuery = new UserActionQuery();
