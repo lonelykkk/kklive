@@ -219,7 +219,18 @@ public class UserInfoServiceImpl implements UserInfoService {
         }
         CountInfoDto countInfoDto = videoInfoMapper.selectSumCountInfo(userId);
         CopyTools.copyProperties(countInfoDto, userInfo);
-        // TODO 粉丝相关
+        // 粉丝数，播放数
+        Integer fansCount = userFocusMapper.selectFansCount(userId);
+        Integer focusCount = userFocusMapper.selectFocusCount(userId);
+        userInfo.setFansCount(fansCount);
+        userInfo.setFocusCount(focusCount);
+
+        if (currentUserId == null) {
+            userInfo.setHaveFocus(false);
+        } else {
+            UserFocus userFocus = userFocusMapper.selectByUserIdAndFocusUserId(currentUserId, userId);
+            userInfo.setHaveFocus(userFocus == null ? false : true);
+        }
         return userInfo;
     }
 
