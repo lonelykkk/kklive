@@ -10,6 +10,9 @@ import org.springframework.data.elasticsearch.config.AbstractElasticsearchConfig
 
 import javax.annotation.Resource;
 
+/**
+ * es初始化
+ */
 @Configuration
 public class EsConfiguration extends AbstractElasticsearchConfiguration implements DisposableBean {
 
