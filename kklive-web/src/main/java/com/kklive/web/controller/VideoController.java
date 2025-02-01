@@ -127,7 +127,7 @@ public class VideoController extends ABaseController {
     @RequestMapping("/search")
     public ResponseVO search(@NotEmpty String keyword, Integer orderType, Integer pageNo) {
         // 记录搜索热词
-        // redisComponent.addKeywordCount(keyword);
+        redisComponent.addKeywordCount(keyword);
         PaginationResultVO resultVO = esSearchComponent.search(true, keyword, orderType, pageNo, PageSize.SIZE30.getSize());
         return getSuccessResponseVO(resultVO);
     }

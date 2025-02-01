@@ -1,4 +1,5 @@
 package com.kklive.service.impl;
+import com.kklive.component.EsSearchComponent;
 import com.kklive.component.RedisComponent;
 import com.kklive.entity.config.AppConfig;
 import com.kklive.entity.dto.SysSettingDto;
@@ -50,6 +51,8 @@ public class VideoInfoServiceImpl implements VideoInfoService {
     private VideoInfoPostMapper<VideoInfoPost, VideoInfoPostQuery> videoInfoPostMapper;
     @Resource
     private UserInfoService userInfoService;
+    @Resource
+    private EsSearchComponent esSearchComponent;
 
     @Resource
     private RedisComponent redisComponent;
@@ -158,8 +161,8 @@ public class VideoInfoServiceImpl implements VideoInfoService {
         SysSettingDto sysSettingDto = redisComponent.getSysSettingDto();
         // TODO 减去用户硬币
         // userInfoService.updateCoinCountInfo(videoInfoPost.getUserId(), -sysSettingDto.getPostVideoCoinCount());
-        // TODO 删除es信息
-
+        // 删除es信息
+        esSearchComponent.delDoc(videoId);
         // 通过异步线程池删除数据库中视频信息
         executorService.execute(()->{
             VideoInfoFileQuery videoInfoFileQuery = new VideoInfoFileQuery();
