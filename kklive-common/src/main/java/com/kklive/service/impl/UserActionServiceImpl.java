@@ -1,5 +1,6 @@
 package com.kklive.service.impl;
 
+import com.kklive.component.EsSearchComponent;
 import com.kklive.entity.enums.PageSize;
 import com.kklive.entity.enums.ResponseCodeEnum;
 import com.kklive.entity.enums.SearchOrderTypeEnum;
@@ -44,6 +45,8 @@ public class UserActionServiceImpl implements UserActionService {
 
     @Resource
     private UserInfoMapper userInfoMapper;
+    @Resource
+    private EsSearchComponent esSearchComponent;
 
     @Override
     public List<UserAction> findListByParam(UserActionQuery param) {
@@ -151,8 +154,8 @@ public class UserActionServiceImpl implements UserActionService {
                 videoInfoMapper.updateCountInfo(bean.getVideoId(), actionTypeEnum.getField(), changeCount);
 
                 if (actionTypeEnum == UserActionTypeEnum.VIDEO_COLLECT) {
-                    // TODO 更新es收藏数量
-                   // esSearchComponent.updateDocCount(videoInfo.getVideoId(), SearchOrderTypeEnum.VIDEO_COLLECT.getField(), changeCount);
+                    // 更新es收藏数量
+                    esSearchComponent.updateDocCount(videoInfo.getVideoId(), SearchOrderTypeEnum.VIDEO_COLLECT.getField(), changeCount);
                 }
                 break;
             // 投币

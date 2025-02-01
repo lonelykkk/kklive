@@ -1,5 +1,6 @@
 package com.kklive.service.impl;
 
+import com.kklive.component.EsSearchComponent;
 import com.kklive.entity.constants.Constants;
 import com.kklive.entity.enums.PageSize;
 import com.kklive.entity.enums.ResponseCodeEnum;
@@ -33,6 +34,8 @@ public class VideoDanmuServiceImpl implements VideoDanmuService {
     private VideoInfoMapper<VideoInfo, VideoInfoQuery> videoInfoMapper;
     @Resource
     private VideoDanmuMapper<VideoDanmu, VideoDanmuQuery> videoDanmuMapper;
+    @Resource
+    private EsSearchComponent esSearchComponent;
 
 
     @Override
@@ -111,7 +114,8 @@ public class VideoDanmuServiceImpl implements VideoDanmuService {
         this.videoDanmuMapper.insert(bean);
         this.videoInfoMapper.updateCountInfo(bean.getVideoId(), UserActionTypeEnum.VIDEO_DANMU.getField(), 1);
 
-        // TODO 跟新es 弹幕数量
+        // 跟新es 弹幕数量
+        esSearchComponent.updateDocCount(bean.getVideoId(), SearchOrderTypeEnum.VIDEO_DANMU.getField(), 1);
     }
 
     /**

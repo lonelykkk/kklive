@@ -1,5 +1,6 @@
 package com.kklive.service.impl;
 
+import com.kklive.component.EsSearchComponent;
 import com.kklive.component.RedisComponent;
 import com.kklive.entity.config.AppConfig;
 import com.kklive.entity.constants.Constants;
@@ -58,6 +59,8 @@ public class VideoInfoPostServiceImpl implements VideoInfoPostService {
     private FFmpegUtils fFmpegUtils;
     @Resource
     private VideoInfoMapper<VideoInfo, VideoInfoQuery> videoInfoMapper;
+    @Resource
+    private EsSearchComponent esSearchComponent;
 
 
     @Override
@@ -301,6 +304,7 @@ public class VideoInfoPostServiceImpl implements VideoInfoPostService {
             }
         }
     }*/
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void transferVideoFile(VideoInfoFilePost videoInfoFile) {
@@ -436,8 +440,11 @@ public class VideoInfoPostServiceImpl implements VideoInfoPostService {
             }
         }
     }
+
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void auditVideo(String videoId, Integer status, String reason) {
+
         VideoStatusEnum videoStatusEnum = VideoStatusEnum.getByStatus(status);
         if (videoStatusEnum == null) {
             throw new BusinessException(ResponseCodeEnum.CODE_600);
@@ -517,7 +524,8 @@ public class VideoInfoPostServiceImpl implements VideoInfoPostService {
         }
         redisComponent.cleanDelFileList(videoId);
 
-        // TODO 保存信息到es
+        // 保存信息到es
+        esSearchComponent.saveDoc(videoInfo);
     }
 
     @Override
