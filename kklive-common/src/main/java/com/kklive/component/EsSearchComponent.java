@@ -2,8 +2,15 @@ package com.kklive.component;
 
 import com.kklive.entity.config.AppConfig;
 import com.kklive.entity.dto.VideoInfoEsDto;
+import com.kklive.entity.enums.PageSize;
+import com.kklive.entity.enums.SearchOrderTypeEnum;
+import com.kklive.entity.po.UserInfo;
 import com.kklive.entity.po.VideoInfo;
+import com.kklive.entity.query.SimplePage;
+import com.kklive.entity.query.UserInfoQuery;
+import com.kklive.entity.vo.PaginationResultVO;
 import com.kklive.exception.BusinessException;
+import com.kklive.mappers.UserInfoMapper;
 import com.kklive.utils.CopyTools;
 import com.kklive.utils.JsonUtils;
 import com.kklive.utils.StringTools;
@@ -12,14 +19,23 @@ import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.client.indices.CreateIndexResponse;
 import org.elasticsearch.client.indices.GetIndexRequest;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
+import org.elasticsearch.search.sort.SortOrder;
 import org.elasticsearch.xcontent.XContentType;
 import org.springframework.stereotype.Component;
 
@@ -27,9 +43,9 @@ import javax.annotation.Resource;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * @author lonelykkk
@@ -40,6 +56,8 @@ import java.util.Map;
 @Component("EsSearchComponent")
 @Slf4j
 public class EsSearchComponent {
+    @Resource
+    private UserInfoMapper userInfoMapper;
     @Resource
     private AppConfig appConfig;
     @Resource
@@ -214,6 +232,83 @@ public class EsSearchComponent {
         } catch (Exception e) {
             log.error("从es删除视频失败", e);
             throw new BusinessException("删除视频失败");
+        }
+    }
+
+    /**
+     * es查询
+     * @param highlight 是否需要高亮
+     * @param keyword
+     * @param orderType
+     * @param pageNo
+     * @param pageSize
+     * @return
+     */
+    public PaginationResultVO<VideoInfo> search(Boolean highlight, String keyword, Integer orderType, Integer pageNo, Integer pageSize) {
+        try {
+            SearchOrderTypeEnum searchOrderTypeEnum = SearchOrderTypeEnum.getByType(orderType);
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+            searchSourceBuilder.query(QueryBuilders.multiMatchQuery(keyword, "videoName", "tags"));
+            // 高亮
+            if (highlight) {
+                HighlightBuilder highlightBuilder = new HighlightBuilder();
+                highlightBuilder.field("videoName");
+                highlightBuilder.preTags("<span class='highlight'>");
+                highlightBuilder.postTags("</span>");
+                searchSourceBuilder.highlighter(highlightBuilder);
+            }
+            // 排序
+            searchSourceBuilder.sort("_score", SortOrder.ASC); // 根据得分排序
+            if (orderType != null) { // 根据用户选择来排序（播放数、收藏数...）
+                searchSourceBuilder.sort(searchOrderTypeEnum.getField(), SortOrder.DESC);
+            }
+            //分页查询
+            pageNo = pageNo == null ? 1 : pageNo;
+            pageSize = pageSize == null ? PageSize.SIZE20.getSize() : pageSize;
+            searchSourceBuilder.size(pageSize);
+            searchSourceBuilder.from((pageNo - 1) * pageSize);
+
+            SearchRequest searchRequest = new SearchRequest(appConfig.getEsIndexVideoName());
+            searchRequest.source(searchSourceBuilder);
+
+            // 执行查询
+            SearchResponse searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+
+            // 处理查询结果
+            SearchHits hits = searchResponse.getHits(); //命中
+            Integer totalCount = (int) hits.getTotalHits().value;
+
+            List<VideoInfo> videoInfoList = new ArrayList<>();
+            List<String> userIdList = new ArrayList<>();
+
+            // 循环获取查询命中的结果集
+            for (SearchHit hit : hits.getHits()) {
+                VideoInfo videoInfo = JsonUtils.convertJson2Obj(hit.getSourceAsString(), VideoInfo.class);
+                if (hit.getHighlightFields().get("videoName") != null) {
+                    videoInfo.setVideoName(hit.getHighlightFields().get("videoName").fragments()[0].string());
+                }
+                videoInfoList.add(videoInfo);
+
+                userIdList.add(videoInfo.getUserId());
+            }
+            UserInfoQuery userInfoQuery = new UserInfoQuery();
+            userInfoQuery.setUserIdList(userIdList);
+            List<UserInfo> userInfoList = userInfoMapper.selectList(userInfoQuery);
+            Map<String, UserInfo> userInfoMap = userInfoList.stream().collect(Collectors.toMap(item -> item.getUserId(), Function.identity(), (data1, data2) -> data2));
+            videoInfoList.forEach(item -> {
+                UserInfo userInfo = userInfoMap.get(item.getUserId());
+                if (userInfo != null) {
+                    item.setNickName(userInfo.getNickName());
+                }
+            });
+            SimplePage page = new SimplePage(pageNo, totalCount, pageSize);
+            PaginationResultVO<VideoInfo> result = new PaginationResultVO(totalCount, page.getPageSize(), page.getPageNo(), page.getPageTotal(), videoInfoList);
+            return result;
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("查询视频到es失败", e);
+            throw new BusinessException("查询失败");
         }
 
     }

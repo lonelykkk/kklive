@@ -1,10 +1,10 @@
 package com.kklive.web.controller;
 
+import com.kklive.component.EsSearchComponent;
 import com.kklive.component.RedisComponent;
+import com.kklive.entity.constants.Constants;
 import com.kklive.entity.dto.TokenUserInfoDto;
-import com.kklive.entity.enums.ResponseCodeEnum;
-import com.kklive.entity.enums.UserActionTypeEnum;
-import com.kklive.entity.enums.VideoRecommendTypeEnum;
+import com.kklive.entity.enums.*;
 import com.kklive.entity.po.UserAction;
 import com.kklive.entity.po.VideoInfo;
 import com.kklive.entity.po.VideoInfoFile;
@@ -29,6 +29,7 @@ import javax.annotation.Resource;
 import javax.validation.constraints.NotEmpty;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author lonelykkk
@@ -51,6 +52,8 @@ public class VideoController extends ABaseController {
 
     @Resource
     private RedisComponent redisComponent;
+    @Resource
+    private EsSearchComponent esSearchComponent;
 
     @RequestMapping("/loadRecommendVideo")
     public ResponseVO loadRecommendVideo() {
@@ -119,5 +122,25 @@ public class VideoController extends ABaseController {
     public ResponseVO reportVideoPlayOnline(@NotEmpty String fileId, String deviceId) {
         Integer count = redisComponent.reportVideoPlayOnline(fileId, deviceId);
         return getSuccessResponseVO(count);
+    }
+
+    @RequestMapping("/search")
+    public ResponseVO search(@NotEmpty String keyword, Integer orderType, Integer pageNo) {
+        // 记录搜索热词
+        // redisComponent.addKeywordCount(keyword);
+        PaginationResultVO resultVO = esSearchComponent.search(true, keyword, orderType, pageNo, PageSize.SIZE30.getSize());
+        return getSuccessResponseVO(resultVO);
+    }
+
+    @RequestMapping("/getVideoRecommend")
+    public ResponseVO getVideoRecommend(@NotEmpty String keyword, @NotEmpty String videoId) {
+        List<VideoInfo> videoInfoList = esSearchComponent.search(false, keyword, SearchOrderTypeEnum.VIDEO_PLAY.getType(), 1, PageSize.SIZE10.getSize()).getList();
+        videoInfoList = videoInfoList.stream().filter(item -> !item.getVideoId().equals(videoId)).collect(Collectors.toList());
+        return getSuccessResponseVO(videoInfoList);
+    }
+    @RequestMapping("/getSearchKeywordTop")
+    public ResponseVO getSearchKeywordTop() {
+        List<String> keywordList = redisComponent.getKeywordTop(Constants.LENGTH_10);
+        return getSuccessResponseVO(keywordList);
     }
 }
