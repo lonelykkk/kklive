@@ -181,7 +181,7 @@ public class FileController extends ABaseController {
         String filePath = videoInfoFile.getFilePath();
         readFile(response, filePath + "/" + Constants.M3U8_NAME);
 
-        // 更新视频阅读信息
+        // 更新视频的阅读信息
         VideoPlayInfoDto videoPlayInfoDto = new VideoPlayInfoDto();
         videoPlayInfoDto.setVideoId(videoInfoFile.getVideoId());
         videoPlayInfoDto.setFileIndex(videoInfoFile.getFileIndex());
@@ -190,6 +190,7 @@ public class FileController extends ABaseController {
         if (tokenUserInfoDto != null) {
             videoPlayInfoDto.setUserId(tokenUserInfoDto.getUserId());
         }
+        // 加入消息队列
         redisComponent.addVideoPlay(videoPlayInfoDto);
     }
 

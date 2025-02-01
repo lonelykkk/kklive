@@ -81,27 +81,35 @@ public class VideoInfoServiceImpl implements VideoInfoService {
 
     @Override
     public Integer add(VideoInfo bean) {
-        return null;
+        return this.videoInfoMapper.insert(bean);
     }
 
     @Override
     public Integer addBatch(List<VideoInfo> listBean) {
-        return null;
+        if (listBean == null || listBean.isEmpty()) {
+            return 0;
+        }
+        return this.videoInfoMapper.insertBatch(listBean);
     }
 
     @Override
     public Integer addOrUpdateBatch(List<VideoInfo> listBean) {
-        return null;
+        if (listBean == null || listBean.isEmpty()) {
+            return 0;
+        }
+        return this.videoInfoMapper.insertOrUpdateBatch(listBean);
     }
 
     @Override
     public Integer updateByParam(VideoInfo bean, VideoInfoQuery param) {
-        return null;
+        StringTools.checkParam(param);
+        return this.videoInfoMapper.updateByParam(bean, param);
     }
 
     @Override
     public Integer deleteByParam(VideoInfoQuery param) {
-        return null;
+        StringTools.checkParam(param);
+        return this.videoInfoMapper.deleteByParam(param);
     }
 
     @Override
@@ -109,19 +117,27 @@ public class VideoInfoServiceImpl implements VideoInfoService {
         return this.videoInfoMapper.selectByVideoId(videoId);
     }
 
+
+    /**
+     * 根据VideoId修改
+     */
     @Override
     public Integer updateVideoInfoByVideoId(VideoInfo bean, String videoId) {
-        return null;
+        return this.videoInfoMapper.updateByVideoId(bean, videoId);
     }
 
+    /**
+     * 根据VideoId删除
+     */
     @Override
     public Integer deleteVideoInfoByVideoId(String videoId) {
-        return null;
+        return this.videoInfoMapper.deleteByVideoId(videoId);
     }
+
 
     @Override
     public void addReadCount(String videoId) {
-
+        this.videoInfoMapper.updateCountInfo(videoId, UserActionTypeEnum.VIDEO_PLAY.getField(), 1);
     }
 
     @Override
