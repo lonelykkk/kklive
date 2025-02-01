@@ -14,6 +14,7 @@ import com.kklive.exception.BusinessException;
 import com.kklive.service.UserVideoSeriesService;
 import com.kklive.service.UserVideoSeriesVideoService;
 import com.kklive.service.VideoInfoService;
+import com.kklive.web.annotation.GlobalInterceptor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -55,6 +56,7 @@ public class UHomeVideoSeriesController extends ABaseController {
      * @return
      */
     @RequestMapping("/saveVideoSeries")
+    @GlobalInterceptor(checkLogin = true)
     public ResponseVO saveVideoSeries(Integer seriesId,
                                       @NotEmpty @Size(max = 100) String seriesName,
                                       @Size(max = 200) String seriesDescription,
@@ -114,6 +116,7 @@ public class UHomeVideoSeriesController extends ABaseController {
      * @return
      */
     @RequestMapping("/saveSeriesVideo")
+    @GlobalInterceptor(checkLogin = true)
     public ResponseVO saveSeriesVideo(@NotNull Integer seriesId, @NotEmpty String videoIds) {
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
         userVideoSeriesService.saveSeriesVideo(tokenUserInfoDto.getUserId(), seriesId, videoIds);
@@ -128,6 +131,7 @@ public class UHomeVideoSeriesController extends ABaseController {
      * @return
      */
     @RequestMapping("/delSeriesVideo")
+    @GlobalInterceptor(checkLogin = true)
     public ResponseVO delSeriesVideo(@NotNull Integer seriesId, @NotEmpty String videoId) {
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
         userVideoSeriesService.delSeriesVideo(tokenUserInfoDto.getUserId(), seriesId, videoId);
@@ -141,6 +145,7 @@ public class UHomeVideoSeriesController extends ABaseController {
      * @return
      */
     @RequestMapping("/delVideoSeries")
+    @GlobalInterceptor(checkLogin = true)
     public ResponseVO delVideoSeries(@NotNull Integer seriesId) {
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
         userVideoSeriesService.delVideoSeries(tokenUserInfoDto.getUserId(), seriesId);

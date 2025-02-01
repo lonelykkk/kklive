@@ -10,6 +10,7 @@ import com.kklive.entity.vo.ResponseVO;
 import com.kklive.service.VideoCommentService;
 import com.kklive.service.VideoDanmuService;
 import com.kklive.service.VideoInfoService;
+import com.kklive.web.annotation.GlobalInterceptor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -36,6 +37,7 @@ public class UCenterInteractController extends ABaseController {
     private VideoInfoService videoInfoService;
 
     @RequestMapping("/loadAllVideo")
+    @GlobalInterceptor(checkLogin = true)
     public ResponseVO loadAllVideo() {
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
         VideoInfoQuery videoInfoQuery = new VideoInfoQuery();
@@ -46,6 +48,7 @@ public class UCenterInteractController extends ABaseController {
     }
 
     @RequestMapping("/loadComment")
+    @GlobalInterceptor(checkLogin = true)
     public ResponseVO loadComment(Integer pageNo, String videoId) {
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
         VideoCommentQuery commentQuery = new VideoCommentQuery();
@@ -60,6 +63,7 @@ public class UCenterInteractController extends ABaseController {
 
 
     @RequestMapping("/delComment")
+    @GlobalInterceptor(checkLogin = true)
     public ResponseVO delComment(@NotNull Integer commentId) {
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
         videoCommentService.deleteComment(commentId, tokenUserInfoDto.getUserId());
@@ -67,6 +71,7 @@ public class UCenterInteractController extends ABaseController {
     }
 
     @RequestMapping("/loadDanmu")
+    @GlobalInterceptor(checkLogin = true)
     public ResponseVO loadDanmu(Integer pageNo, String videoId) {
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
         VideoDanmuQuery danmuQuery = new VideoDanmuQuery();
@@ -81,6 +86,7 @@ public class UCenterInteractController extends ABaseController {
 
 
     @RequestMapping("/delDanmu")
+    @GlobalInterceptor(checkLogin = true)
     public ResponseVO delDanmu(@NotNull Integer danmuId) {
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
         videoDanmuService.deleteDanmu(tokenUserInfoDto.getUserId(), danmuId);

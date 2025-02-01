@@ -20,6 +20,7 @@ import com.kklive.service.UserActionService;
 import com.kklive.service.VideoInfoFileService;
 import com.kklive.service.VideoInfoService;
 import com.kklive.utils.CopyTools;
+import com.kklive.web.annotation.GlobalInterceptor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -56,6 +57,7 @@ public class VideoController extends ABaseController {
     private EsSearchComponent esSearchComponent;
 
     @RequestMapping("/loadRecommendVideo")
+    @GlobalInterceptor
     public ResponseVO loadRecommendVideo() {
         VideoInfoQuery videoInfoQuery = new VideoInfoQuery();
         videoInfoQuery.setQueryUserInfo(true);
@@ -66,6 +68,7 @@ public class VideoController extends ABaseController {
     }
 
     @RequestMapping("/loadVideo")
+    @GlobalInterceptor
     public ResponseVO postVideo(Integer pCategoryId, Integer categoryId, Integer pageNo) {
         VideoInfoQuery videoInfoQuery = new VideoInfoQuery();
         videoInfoQuery.setCategoryId(categoryId);
@@ -86,6 +89,7 @@ public class VideoController extends ABaseController {
      * @return
      */
     @RequestMapping("/loadVideoPList")
+    @GlobalInterceptor
     public ResponseVO loadVideoPList(@NotEmpty String videoId) {
         VideoInfoFileQuery videoInfoQuery = new VideoInfoFileQuery();
         videoInfoQuery.setVideoId(videoId);
@@ -94,6 +98,7 @@ public class VideoController extends ABaseController {
         return getSuccessResponseVO(fileList);
     }
     @RequestMapping("/getVideoInfo")
+    @GlobalInterceptor
     public ResponseVO getVideoInfo(@NotEmpty String videoId) {
         VideoInfo videoInfo = videoInfoService.getVideoInfoByVideoId(videoId);
         if (null == videoInfo) {
@@ -119,12 +124,14 @@ public class VideoController extends ABaseController {
     }
 
     @RequestMapping("/reportVideoPlayOnline")
+    @GlobalInterceptor
     public ResponseVO reportVideoPlayOnline(@NotEmpty String fileId, String deviceId) {
         Integer count = redisComponent.reportVideoPlayOnline(fileId, deviceId);
         return getSuccessResponseVO(count);
     }
 
     @RequestMapping("/search")
+    @GlobalInterceptor
     public ResponseVO search(@NotEmpty String keyword, Integer orderType, Integer pageNo) {
         // 记录搜索热词
         redisComponent.addKeywordCount(keyword);
@@ -133,12 +140,14 @@ public class VideoController extends ABaseController {
     }
 
     @RequestMapping("/getVideoRecommend")
+    @GlobalInterceptor
     public ResponseVO getVideoRecommend(@NotEmpty String keyword, @NotEmpty String videoId) {
         List<VideoInfo> videoInfoList = esSearchComponent.search(false, keyword, SearchOrderTypeEnum.VIDEO_PLAY.getType(), 1, PageSize.SIZE10.getSize()).getList();
         videoInfoList = videoInfoList.stream().filter(item -> !item.getVideoId().equals(videoId)).collect(Collectors.toList());
         return getSuccessResponseVO(videoInfoList);
     }
     @RequestMapping("/getSearchKeywordTop")
+    @GlobalInterceptor
     public ResponseVO getSearchKeywordTop() {
         List<String> keywordList = redisComponent.getKeywordTop(Constants.LENGTH_10);
         return getSuccessResponseVO(keywordList);

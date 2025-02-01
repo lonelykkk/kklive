@@ -7,6 +7,7 @@ import com.kklive.entity.query.VideoDanmuQuery;
 import com.kklive.entity.vo.ResponseVO;
 import com.kklive.service.VideoDanmuService;
 import com.kklive.service.impl.VideoInfoServiceImpl;
+import com.kklive.web.annotation.GlobalInterceptor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -47,6 +48,7 @@ public class VideoDanmuController extends ABaseController {
     }
 
     @RequestMapping("/postDanmu")
+    @GlobalInterceptor(checkLogin = true)
     public ResponseVO postDanmu(@NotEmpty String videoId,
                                 @NotEmpty String fileId,
                                 @NotEmpty @Size(max = 200) String text,

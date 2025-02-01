@@ -17,6 +17,7 @@ import com.kklive.entity.vo.VideoCommentResultVO;
 import com.kklive.service.UserActionService;
 import com.kklive.service.VideoCommentService;
 import com.kklive.service.impl.VideoInfoServiceImpl;
+import com.kklive.web.annotation.GlobalInterceptor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -99,6 +100,7 @@ public class VideoCommentController extends ABaseController {
     }
 
     @RequestMapping("/postComment")
+    @GlobalInterceptor(checkLogin = true)
     public ResponseVO postComment(@NotEmpty String videoId,
                                   Integer replyCommentId,
                                   @NotEmpty @Size(max = 500) String content,
@@ -118,6 +120,7 @@ public class VideoCommentController extends ABaseController {
 
 
     @RequestMapping("/userDelComment")
+    @GlobalInterceptor(checkLogin = true)
     public ResponseVO userDelComment(@NotNull Integer commentId) {
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
         VideoComment comment = new VideoComment();
@@ -126,6 +129,7 @@ public class VideoCommentController extends ABaseController {
     }
 
     @RequestMapping("/topComment")
+    @GlobalInterceptor(checkLogin = true)
     public ResponseVO topComment(@NotNull Integer commentId) {
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
         videoCommentService.topComment(commentId, tokenUserInfoDto.getUserId());
@@ -133,6 +137,7 @@ public class VideoCommentController extends ABaseController {
     }
 
     @RequestMapping("/cancelTopComment")
+    @GlobalInterceptor(checkLogin = true)
     public ResponseVO cancelTopComment(@NotNull Integer commentId) {
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
         videoCommentService.cancelTopComment(commentId, tokenUserInfoDto.getUserId());

@@ -11,6 +11,7 @@ import com.kklive.entity.constants.Constants;
 import com.kklive.entity.po.UserAction;
 import com.kklive.entity.vo.ResponseVO;
 import com.kklive.service.UserActionService;
+import com.kklive.web.annotation.GlobalInterceptor;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -29,6 +30,7 @@ public class UserActionController extends ABaseController {
     private UserActionService userActionService;
 
     @RequestMapping("doAction")
+    @GlobalInterceptor(checkLogin = true)
     public ResponseVO doAction(@NotEmpty String videoId,
                                @NotEmpty Integer actionType,
                                @Max(2) @Min(1) Integer actionCount,

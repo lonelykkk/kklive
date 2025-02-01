@@ -16,6 +16,7 @@ import com.kklive.service.VideoInfoFilePostService;
 import com.kklive.service.VideoInfoPostService;
 import com.kklive.service.VideoInfoService;
 import com.kklive.utils.JsonUtils;
+import com.kklive.web.annotation.GlobalInterceptor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -45,6 +46,7 @@ public class UCenterVideoPostController extends ABaseController {
     private VideoInfoService videoInfoService;
 
     @RequestMapping("/postVideo")
+    @GlobalInterceptor(checkLogin = true)
     public ResponseVO postVideo(String videoId, @NotEmpty String videoCover, @NotEmpty @Size(max = 100) String videoName, @NotNull Integer pCategoryId,
                                 Integer categoryId, @NotNull Integer postType, @NotEmpty @Size(max = 300) String tags, @Size(max = 2000) String introduction,
                                 @Size(max = 3) String interaction, @NotEmpty String uploadFileList) {
@@ -69,6 +71,7 @@ public class UCenterVideoPostController extends ABaseController {
     }
 
     @RequestMapping("/loadVideoList")
+    @GlobalInterceptor(checkLogin = true)
     public ResponseVO loadVideoList(Integer status, Integer pageNo, String videoNameFuzzy) {
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
         VideoInfoPostQuery videoInfoQuery = new VideoInfoPostQuery();
@@ -89,6 +92,7 @@ public class UCenterVideoPostController extends ABaseController {
     }
 
     @RequestMapping("/getVideoCountInfo")
+    @GlobalInterceptor(checkLogin = true)
     public ResponseVO getVideoCountInfo() {
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
         VideoInfoPostQuery videoInfoQuery = new VideoInfoPostQuery();
@@ -111,6 +115,7 @@ public class UCenterVideoPostController extends ABaseController {
     }
 
     @RequestMapping("/getVideoByVideoId")
+    @GlobalInterceptor(checkLogin = true)
     public ResponseVO getVideoByVideoId(@NotEmpty String videoId) {
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
         VideoInfoPost videoInfoPost = this.videoInfoPostService.getVideoInfoPostByVideoId(videoId);
@@ -128,6 +133,7 @@ public class UCenterVideoPostController extends ABaseController {
     }
 
     @RequestMapping("/saveVideoInteraction")
+    @GlobalInterceptor(checkLogin = true)
     public ResponseVO saveVideoInteraction(@NotEmpty String videoId, String interaction) {
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
         videoInfoService.changeInteraction(videoId, tokenUserInfoDto.getUserId(), interaction);
@@ -140,6 +146,7 @@ public class UCenterVideoPostController extends ABaseController {
      * @return
      */
     @RequestMapping("/deleteVideo")
+    @GlobalInterceptor(checkLogin = true)
     public ResponseVO deleteVideo(@NotEmpty String videoId) {
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
         videoInfoService.deleteVideo(videoId, tokenUserInfoDto.getUserId());

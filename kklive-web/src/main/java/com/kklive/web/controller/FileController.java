@@ -16,6 +16,7 @@ import com.kklive.service.VideoInfoFileService;
 import com.kklive.utils.DateUtil;
 import com.kklive.utils.FFmpegUtils;
 import com.kklive.utils.StringTools;
+import com.kklive.web.annotation.GlobalInterceptor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.springframework.validation.annotation.Validated;
@@ -59,6 +60,7 @@ public class FileController extends ABaseController {
     private RedisComponent redisComponent;
 
     @RequestMapping("/getResource")
+    @GlobalInterceptor
     public void getResource(HttpServletResponse response, @NotEmpty String sourceName) {
         if (!StringTools.pathIsOk(sourceName)) {
             throw new BusinessException(ResponseCodeEnum.CODE_600);
@@ -95,6 +97,7 @@ public class FileController extends ABaseController {
      * @return 返回文件id
      */
     @RequestMapping("/preUploadVideo")
+    @GlobalInterceptor(checkLogin = true)
     public ResponseVO preUploadVideo(@NotEmpty String fileName, @NotNull Integer chunks) {
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
         String uploadId = redisComponent.savePreVideoFileInfo(tokenUserInfoDto.getUserId(), fileName, chunks);
@@ -110,6 +113,7 @@ public class FileController extends ABaseController {
      * @throws IOException
      */
     @RequestMapping("/uploadVideo")
+    @GlobalInterceptor(checkLogin = true)
     public ResponseVO uploadVideo(@NotNull MultipartFile chunkFile, @NotNull Integer chunkIndex, @NotEmpty String uploadId) throws IOException {
         TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
         UploadingFileDto fileDto = redisComponent.getUploadingVideoFile(tokenUserInfoDto.getUserId(), uploadId);
@@ -156,6 +160,7 @@ public class FileController extends ABaseController {
      * @throws IOException
      */
     @RequestMapping("/uploadImage")
+    @GlobalInterceptor(checkLogin = true)
     public ResponseVO uploadImage(@NotNull MultipartFile file,@NotNull Boolean createThumbnail) throws IOException {
         String day = DateUtil.format(new Date(), DateTimePatternEnum.YYYYMMDD.getPattern());
         String folder = appConfig.getProjectFolder() + Constants.FILE_FOLDER + Constants.FILE_COVER + day;
@@ -176,6 +181,7 @@ public class FileController extends ABaseController {
     }
 
     @RequestMapping("/videoResource/{fileId}")
+    @GlobalInterceptor
     public void getVideoResource(HttpServletResponse response, @PathVariable @NotEmpty String fileId) {
         VideoInfoFile videoInfoFile = videoInfoFileService.getVideoInfoFileByFileId(fileId);
         String filePath = videoInfoFile.getFilePath();
@@ -195,6 +201,7 @@ public class FileController extends ABaseController {
     }
 
     @RequestMapping("/videoResource/{fileId}/{ts}")
+    @GlobalInterceptor
     public void getVideoResourceTs(HttpServletResponse response, @PathVariable @NotEmpty String fileId, @PathVariable @NotNull String ts) {
         VideoInfoFile videoInfoFile = videoInfoFileService.getVideoInfoFileByFileId(fileId);
         String filePath = videoInfoFile.getFilePath();
