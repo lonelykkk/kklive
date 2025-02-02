@@ -50,6 +50,8 @@ public class VideoInfoPostServiceImpl implements VideoInfoPostService {
     @Resource
     private VideoInfoPostMapper<VideoInfoPost, VideoInfoPostQuery> videoInfoPostMapper;
     @Resource
+    private UserInfoMapper userInfoMapper;
+    @Resource
     private VideoInfoFilePostMapper<VideoInfoFilePost, VideoInfoFilePostQuery> videoInfoFilePostMapper;
     @Resource
     private VideoInfoFileMapper<VideoInfoFile, VideoInfoFileQuery> videoInfoFileMapper;
@@ -475,12 +477,12 @@ public class VideoInfoPostServiceImpl implements VideoInfoPostService {
         }
         VideoInfoPost infoPost = this.videoInfoPostMapper.selectByVideoId(videoId);
 
+        // 给用户加硬币
         VideoInfo dbVideoInfo = this.videoInfoMapper.selectByVideoId(videoId);
-
-        // TODO 给用户加硬币
         if (dbVideoInfo == null) {
             // 如果是第一次发布增加用户积分
             SysSettingDto sysSettingDto = redisComponent.getSysSettingDto();
+            userInfoMapper.updateCoinCountInfo(infoPost.getUserId(), sysSettingDto.getPostVideoCoinCount());
         }
 
         /**

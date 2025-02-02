@@ -39,7 +39,6 @@ import java.util.List;
 @Service("userInfoService")
 public class UserInfoServiceImpl implements UserInfoService {
 
-
     @Resource
     private RedisComponent redisComponent;
 
@@ -51,89 +50,156 @@ public class UserInfoServiceImpl implements UserInfoService {
 
     @Resource
     private UserFocusMapper<UserFocus, UserFocusQuery> userFocusMapper;
+
+    /**
+     * 根据条件查询列表
+     */
     @Override
     public List<UserInfo> findListByParam(UserInfoQuery param) {
-        return null;
+        return this.userInfoMapper.selectList(param);
     }
 
+    /**
+     * 根据条件查询列表
+     */
     @Override
     public Integer findCountByParam(UserInfoQuery param) {
-        return null;
+        return this.userInfoMapper.selectCount(param);
     }
 
+    /**
+     * 分页查询方法
+     */
     @Override
     public PaginationResultVO<UserInfo> findListByPage(UserInfoQuery param) {
-        return null;
+        int count = this.findCountByParam(param);
+        int pageSize = param.getPageSize() == null ? PageSize.SIZE15.getSize() : param.getPageSize();
+
+        SimplePage page = new SimplePage(param.getPageNo(), count, pageSize);
+        param.setSimplePage(page);
+        List<UserInfo> list = this.findListByParam(param);
+        PaginationResultVO<UserInfo> result = new PaginationResultVO(count, page.getPageSize(), page.getPageNo(), page.getPageTotal(), list);
+        return result;
     }
 
+    /**
+     * 新增
+     */
     @Override
     public Integer add(UserInfo bean) {
-        return null;
+        return this.userInfoMapper.insert(bean);
     }
 
+    /**
+     * 批量新增
+     */
     @Override
     public Integer addBatch(List<UserInfo> listBean) {
-        return null;
+        if (listBean == null || listBean.isEmpty()) {
+            return 0;
+        }
+        return this.userInfoMapper.insertBatch(listBean);
     }
 
+    /**
+     * 批量新增或者修改
+     */
     @Override
     public Integer addOrUpdateBatch(List<UserInfo> listBean) {
-        return null;
+        if (listBean == null || listBean.isEmpty()) {
+            return 0;
+        }
+        return this.userInfoMapper.insertOrUpdateBatch(listBean);
     }
 
+    /**
+     * 多条件更新
+     */
     @Override
     public Integer updateByParam(UserInfo bean, UserInfoQuery param) {
-        return null;
+        StringTools.checkParam(param);
+        return this.userInfoMapper.updateByParam(bean, param);
     }
 
+    /**
+     * 多条件删除
+     */
     @Override
     public Integer deleteByParam(UserInfoQuery param) {
-        return null;
+        StringTools.checkParam(param);
+        return this.userInfoMapper.deleteByParam(param);
     }
 
+    /**
+     * 根据UserId获取对象
+     */
     @Override
     public UserInfo getUserInfoByUserId(String userId) {
         return this.userInfoMapper.selectByUserId(userId);
     }
 
+    /**
+     * 根据UserId修改
+     */
     @Override
     public Integer updateUserInfoByUserId(UserInfo bean, String userId) {
         return this.userInfoMapper.updateByUserId(bean, userId);
     }
 
+    /**
+     * 根据UserId删除
+     */
     @Override
     public Integer deleteUserInfoByUserId(String userId) {
-        return null;
+        return this.userInfoMapper.deleteByUserId(userId);
     }
 
+    /**
+     * 根据Email获取对象
+     */
     @Override
     public UserInfo getUserInfoByEmail(String email) {
-        return null;
+        return this.userInfoMapper.selectByEmail(email);
     }
 
+    /**
+     * 根据Email修改
+     */
     @Override
     public Integer updateUserInfoByEmail(UserInfo bean, String email) {
-        return null;
+        return this.userInfoMapper.updateByEmail(bean, email);
     }
 
+    /**
+     * 根据Email删除
+     */
     @Override
     public Integer deleteUserInfoByEmail(String email) {
-        return null;
+        return this.userInfoMapper.deleteByEmail(email);
     }
 
+    /**
+     * 根据NickName获取对象
+     */
     @Override
     public UserInfo getUserInfoByNickName(String nickName) {
-        return null;
+        return this.userInfoMapper.selectByNickName(nickName);
     }
 
+    /**
+     * 根据NickName修改
+     */
     @Override
     public Integer updateUserInfoByNickName(UserInfo bean, String nickName) {
-        return null;
+        return this.userInfoMapper.updateByNickName(bean, nickName);
     }
 
+    /**
+     * 根据NickName删除
+     */
     @Override
     public Integer deleteUserInfoByNickName(String nickName) {
-        return null;
+        return this.userInfoMapper.deleteByNickName(nickName);
     }
 
     @Override
@@ -156,6 +222,7 @@ public class UserInfoServiceImpl implements UserInfoService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void register(String email, String nickName, String password) {
         UserInfo userInfo = this.userInfoMapper.selectByEmail(email);
         if (null != userInfo) {
@@ -175,7 +242,7 @@ public class UserInfoServiceImpl implements UserInfoService {
         userInfo.setStatus(UserStatusEnum.ENABLE.getStatus());
         userInfo.setSex(UserSexEnum.SECRECY.getType());
         userInfo.setTheme(Constants.ONE);
-        // TODO 初始化用户硬币
+
         SysSettingDto sysSettingDto = redisComponent.getSysSettingDto();
         userInfo.setTotalCoinCount(sysSettingDto.getRegisterCoinCount());
         userInfo.setCurrentCoinCount(sysSettingDto.getRegisterCoinCount());
@@ -184,6 +251,7 @@ public class UserInfoServiceImpl implements UserInfoService {
     }
 
     @Override
+    @Transactional
     public void updateUserInfo(UserInfo userInfo, TokenUserInfoDto tokenUserInfoDto) {
         UserInfo dbInfo = this.userInfoMapper.selectByUserId(userInfo.getUserId());
         if (!dbInfo.getNickName().equals(userInfo.getNickName()) && dbInfo.getCurrentCoinCount() < Constants.UPDATE_NICK_NAME_COIN) {
@@ -214,12 +282,12 @@ public class UserInfoServiceImpl implements UserInfoService {
     @Override
     public UserInfo getUserDetailInfo(String currentUserId, String userId) {
         UserInfo userInfo = getUserInfoByUserId(userId);
-        if (userInfo == null) {
+        if (null == userInfo) {
             throw new BusinessException(ResponseCodeEnum.CODE_404);
         }
         CountInfoDto countInfoDto = videoInfoMapper.selectSumCountInfo(userId);
         CopyTools.copyProperties(countInfoDto, userInfo);
-        // 粉丝数，播放数
+
         Integer fansCount = userFocusMapper.selectFansCount(userId);
         Integer focusCount = userFocusMapper.selectFocusCount(userId);
         userInfo.setFansCount(fansCount);
@@ -236,11 +304,25 @@ public class UserInfoServiceImpl implements UserInfoService {
 
     @Override
     public UserCountInfoDto getUserCountInfo(String userId) {
-        return null;
+        UserInfo userInfo = getUserInfoByUserId(userId);
+        Integer fansCount = userFocusMapper.selectFansCount(userId);
+        Integer focusCount = userFocusMapper.selectFocusCount(userId);
+
+        UserCountInfoDto countInfoDto = new UserCountInfoDto();
+
+        countInfoDto.setFansCount(fansCount);
+        countInfoDto.setFocusCount(focusCount);
+        countInfoDto.setCurrentCoinCount(userInfo.getCurrentCoinCount());
+        return countInfoDto;
     }
 
-    @Override
     public Integer updateCoinCountInfo(String userId, Integer changeCount) {
-        return null;
+        if (changeCount < 0) {
+            UserInfo userInfo = getUserInfoByUserId(userId);
+            if (userInfo.getCurrentCoinCount() + changeCount < 0) {
+                changeCount = -userInfo.getCurrentCoinCount();
+            }
+        }
+        return this.userInfoMapper.updateCoinCountInfo(userId, changeCount);
     }
 }

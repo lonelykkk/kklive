@@ -175,8 +175,8 @@ public class VideoInfoServiceImpl implements VideoInfoService {
          * 删除用户硬币
          */
         SysSettingDto sysSettingDto = redisComponent.getSysSettingDto();
-        // TODO 减去用户硬币
-        // userInfoService.updateCoinCountInfo(videoInfoPost.getUserId(), -sysSettingDto.getPostVideoCoinCount());
+        // 减去用户硬币
+        userInfoService.updateCoinCountInfo(videoInfoPost.getUserId(), -sysSettingDto.getPostVideoCoinCount());
         // 删除es信息
         esSearchComponent.delDoc(videoId);
         // 通过异步线程池删除数据库中视频信息

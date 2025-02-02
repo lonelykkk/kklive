@@ -9,6 +9,7 @@ import com.kklive.exception.BusinessException;
 import com.kklive.redis.RedisUtils;
 import com.kklive.service.UserInfoService;
 import com.kklive.utils.StringTools;
+import com.kklive.web.annotation.GlobalInterceptor;
 import com.wf.captcha.ArithmeticCaptcha;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -88,7 +89,6 @@ public class AccountController extends ABaseController {
             String ip = getIpAddr();
             TokenUserInfoDto tokenUserInfoDto = userInfoService.login(email, password, ip);
             saveToken2Cookie(response, tokenUserInfoDto.getToken());
-            // TODO 设置粉丝数、硬币数、关注数
             return getSuccessResponseVO(tokenUserInfoDto);
         }finally {
             redisComponent.cleanCheckCode(checkCodeKey);
@@ -117,7 +117,6 @@ public class AccountController extends ABaseController {
             redisComponent.saveTokenInfo(tokenUserInfoDto);
             saveToken2Cookie(response, tokenUserInfoDto.getToken());
         }
-        // TODO 设置粉丝数、硬币数、关注数
         return getSuccessResponseVO(tokenUserInfoDto);
     }
 
@@ -125,5 +124,13 @@ public class AccountController extends ABaseController {
     public ResponseVO logout(HttpServletResponse response) {
         cleanCookie(response);
         return getSuccessResponseVO(null);
+    }
+
+    @RequestMapping(value = "/getUserCountInfo")
+    @GlobalInterceptor(checkLogin = true)
+    public ResponseVO getUserCountInfo() {
+        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
+        UserCountInfoDto userCountInfoDto = userInfoService.getUserCountInfo(tokenUserInfoDto.getUserId());
+        return getSuccessResponseVO(userCountInfoDto);
     }
 }

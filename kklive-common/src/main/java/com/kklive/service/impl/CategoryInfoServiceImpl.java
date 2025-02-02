@@ -29,7 +29,8 @@ public class CategoryInfoServiceImpl implements CategoryInfoService {
 
     @Resource
     private CategoryInfoMapper<CategoryInfo, CategoryInfoQuery> categoryInfoMapper;
-
+    @Resource
+    private VideoInfoService videoInfoService;
 
     @Resource
     private RedisComponent redisComponent;
@@ -137,13 +138,13 @@ public class CategoryInfoServiceImpl implements CategoryInfoService {
 
     @Override
     public void delCategory(Integer categoryId) {
-        // todo 查询分类下是否有视频
-        /*VideoInfoQuery videoInfoQuery = new VideoInfoQuery();
+        // 查询分类下是否有视频
+        VideoInfoQuery videoInfoQuery = new VideoInfoQuery();
         videoInfoQuery.setCategoryIdOrPCategoryId(categoryId);
         Integer count = videoInfoService.findCountByParam(videoInfoQuery);
         if (count > 0) {
             throw new BusinessException("分类下有视频信息，无法删除");
-        }*/
+        }
 
         CategoryInfoQuery categoryInfoQuery = new CategoryInfoQuery();
         categoryInfoQuery.setCategoryIdOrPCategoryId(categoryId);

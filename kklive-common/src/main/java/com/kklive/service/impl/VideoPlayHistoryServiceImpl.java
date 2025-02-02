@@ -127,6 +127,12 @@ public class VideoPlayHistoryServiceImpl implements VideoPlayHistoryService {
         return this.videoPlayHistoryMapper.deleteByUserIdAndVideoId(userId, videoId);
     }
 
+    /**
+     * 保存播放历史
+     * @param userId
+     * @param videoId
+     * @param fileIndex
+     */
     @Override
     public void saveHistory(String userId, String videoId, Integer fileIndex) {
         VideoPlayHistory history = new VideoPlayHistory();

@@ -79,7 +79,7 @@ public class ExecuteQueueTask {
                     //更新播放数
                     videoInfoService.addReadCount(videoPlayInfoDto.getVideoId());
                     if (!StringTools.isEmpty(videoPlayInfoDto.getUserId())) {
-                        //记录历史
+                        // 记录历史
                         videoPlayHistoryService.saveHistory(videoPlayInfoDto.getUserId(), videoPlayInfoDto.getVideoId(), videoPlayInfoDto.getFileIndex());
                     }
                     //按天记录播放数
