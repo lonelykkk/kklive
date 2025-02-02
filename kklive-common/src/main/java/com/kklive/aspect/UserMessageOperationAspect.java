@@ -46,7 +46,7 @@ public class UserMessageOperationAspect {
     private UserMessageService userMessageService;
 
 
-    @Around("@annotation(com.easylive.annotation.RecordUserMessage)")
+    @Around("@annotation(com.kklive.annotation.RecordUserMessage)")
     public ResponseVO interceptorDo(ProceedingJoinPoint point) throws Exception {
         try {
             ResponseVO result = (ResponseVO) point.proceed();

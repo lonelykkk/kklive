@@ -147,6 +147,14 @@ public class UserMessageServiceImpl implements UserMessageService {
         return this.userMessageMapper.deleteByMessageId(messageId);
     }
 
+    /**
+     * 将消息存入数据库
+     * @param videoId
+     * @param sendUserId
+     * @param messageTypeEnum
+     * @param content
+     * @param replyCommentId
+     */
     @Override
     @Async
     public void saveUserMessage(String videoId, String sendUserId, MessageTypeEnum messageTypeEnum, String content, Integer replyCommentId) {
