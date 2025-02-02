@@ -1,5 +1,6 @@
 package com.kklive.web.controller;
 
+import com.kklive.annotation.RecordUserMessage;
 import com.kklive.entity.constants.Constants;
 import com.kklive.entity.dto.TokenUserInfoDto;
 import com.kklive.entity.enums.CommentTopTypeEnum;
@@ -101,6 +102,7 @@ public class VideoCommentController extends ABaseController {
 
     @RequestMapping("/postComment")
     @GlobalInterceptor(checkLogin = true)
+    @RecordUserMessage(messageType = MessageTypeEnum.COMMENT)
     public ResponseVO postComment(@NotEmpty String videoId,
                                   Integer replyCommentId,
                                   @NotEmpty @Size(max = 500) String content,

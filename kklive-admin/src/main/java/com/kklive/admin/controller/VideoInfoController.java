@@ -1,5 +1,7 @@
 package com.kklive.admin.controller;
 
+import com.kklive.annotation.RecordUserMessage;
+import com.kklive.entity.enums.MessageTypeEnum;
 import com.kklive.entity.query.VideoInfoPostQuery;
 import com.kklive.entity.vo.PaginationResultVO;
 import com.kklive.entity.vo.ResponseVO;
@@ -44,6 +46,7 @@ public class VideoInfoController extends ABaseController{
     }
 
     @RequestMapping("/auditVideo")
+    @RecordUserMessage(messageType = MessageTypeEnum.SYS)
     public ResponseVO auditVideo(@NotEmpty String videoId, @NotNull Integer status, String reason) {
         videoInfoPostService.auditVideo(videoId, status, reason);
         return getSuccessResponseVO(null);

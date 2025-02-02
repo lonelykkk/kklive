@@ -7,7 +7,9 @@ package com.kklive.web.controller;
  * @Version V1.0
  */
 
+import com.kklive.annotation.RecordUserMessage;
 import com.kklive.entity.constants.Constants;
+import com.kklive.entity.enums.MessageTypeEnum;
 import com.kklive.entity.po.UserAction;
 import com.kklive.entity.vo.ResponseVO;
 import com.kklive.service.UserActionService;
@@ -31,6 +33,7 @@ public class UserActionController extends ABaseController {
 
     @RequestMapping("doAction")
     @GlobalInterceptor(checkLogin = true)
+    @RecordUserMessage(messageType = MessageTypeEnum.LIKE)
     public ResponseVO doAction(@NotEmpty String videoId,
                                @NotEmpty Integer actionType,
                                @Max(2) @Min(1) Integer actionCount,
