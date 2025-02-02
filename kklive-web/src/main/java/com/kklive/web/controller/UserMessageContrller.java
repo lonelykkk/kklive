@@ -25,6 +25,10 @@ public class UserMessageContrller extends ABaseController {
     @Resource
     private UserMessageService userMessageService;
 
+    /**
+     * 获取未读消息
+     * @return
+     */
     @RequestMapping("/getNoReadCount")
     @GlobalInterceptor(checkLogin = true)
     public ResponseVO getNoReadCount() {
@@ -39,6 +43,10 @@ public class UserMessageContrller extends ABaseController {
         return getSuccessResponseVO(count);
     }
 
+    /**
+     * 获取分组消息
+     * @return
+     */
     @RequestMapping("/getNoReadCountGroup")
     @GlobalInterceptor(checkLogin = true)
     public ResponseVO getNoReadCountGroup() {
@@ -47,6 +55,11 @@ public class UserMessageContrller extends ABaseController {
         return getSuccessResponseVO(dataList);
     }
 
+    /**
+     * 消息全部已读
+     * @param messageType
+     * @return
+     */
     @RequestMapping("/readAll")
     @GlobalInterceptor(checkLogin = true)
     public ResponseVO readAll(Integer messageType) {
@@ -62,6 +75,12 @@ public class UserMessageContrller extends ABaseController {
         return getSuccessResponseVO(null);
     }
 
+    /**
+     * 加载消息
+     * @param messageType
+     * @param pageNo
+     * @return
+     */
     @RequestMapping("/loadMessage")
     @GlobalInterceptor(checkLogin = true)
     public ResponseVO loadMessage(@NotNull Integer messageType, Integer pageNo) {
@@ -75,6 +94,11 @@ public class UserMessageContrller extends ABaseController {
         return getSuccessResponseVO(resultVO);
     }
 
+    /**
+     * 删除消息
+     * @param messageId
+     * @return
+     */
     @RequestMapping("/delMessage")
     @GlobalInterceptor(checkLogin = true)
     public ResponseVO delMessage(@NotNull Integer messageId) {
