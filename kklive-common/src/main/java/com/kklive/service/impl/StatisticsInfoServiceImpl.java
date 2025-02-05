@@ -152,6 +152,9 @@ public class StatisticsInfoServiceImpl implements StatisticsInfoService {
         return this.statisticsInfoMapper.deleteByStatisticsDateAndUserIdAndDataType(statisticsDate, userId, dataType);
     }
 
+    /**
+     * 创作中心数据统计
+     */
     @Override
     public void statisticsData() {
         List<StatisticsInfo> statisticsInfoList = new ArrayList<>();
