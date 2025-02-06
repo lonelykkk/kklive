@@ -2,6 +2,8 @@ package com.kklive.admin.controller;
 
 import com.kklive.annotation.RecordUserMessage;
 import com.kklive.entity.enums.MessageTypeEnum;
+import com.kklive.entity.po.VideoInfoFilePost;
+import com.kklive.entity.query.VideoInfoFilePostQuery;
 import com.kklive.entity.query.VideoInfoPostQuery;
 import com.kklive.entity.vo.PaginationResultVO;
 import com.kklive.entity.vo.ResponseVO;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.annotation.Resource;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
+import java.util.List;
 
 /**
  * @author lonelykkk
@@ -50,5 +53,31 @@ public class VideoInfoController extends ABaseController{
     public ResponseVO auditVideo(@NotEmpty String videoId, @NotNull Integer status, String reason) {
         videoInfoPostService.auditVideo(videoId, status, reason);
         return getSuccessResponseVO(null);
+    }
+
+    /**
+     * 推荐视频
+     * @param videoId
+     * @return
+     */
+    @RequestMapping("/recommendVideo")
+    public ResponseVO recommendVideo(@NotEmpty String videoId) {
+        videoInfoPostService.recommendVideo(videoId);
+        return getSuccessResponseVO(null);
+    }
+
+    @RequestMapping("/deleteVideo")
+    public ResponseVO deleteVideo(@NotEmpty String videoId) {
+        videoInfoService.deleteVideo(videoId, null);
+        return getSuccessResponseVO(null);
+    }
+
+    @RequestMapping("/loadVideoPList")
+    public ResponseVO loadVideoPList(@NotEmpty String videoId) {
+        VideoInfoFilePostQuery postQuery = new VideoInfoFilePostQuery();
+        postQuery.setOrderBy("file_index asc");
+        postQuery.setVideoId(videoId);
+        List<VideoInfoFilePost> videoInfoFilePostsList = videoInfoFilePostService.findListByParam(postQuery);
+        return getSuccessResponseVO(videoInfoFilePostsList);
     }
 }
