@@ -142,3 +142,73 @@ public class RedisKeyExpirationListener extends KeyExpirationEventMessageListene
 	该方法应实现以下功能：
 	- 对 `video:online:{fileId}` 键的值递减1。
 	- 如果键不存在或值为0，则不操作。
+
+## 统计视频播放数
+
+```java
+    @RequestMapping("/videoResource/{fileId}")
+    public void getVideoResource(HttpServletResponse response, @PathVariable @NotEmpty String fileId) {
+        VideoInfoFile videoInfoFile = videoInfoFileService.getVideoInfoFileByFileId(fileId);
+        String filePath = videoInfoFile.getFilePath();
+        readFile(response, filePath + "/" + Constants.M3U8_NAME);
+
+        // 更新视频的阅读信息
+        VideoPlayInfoDto videoPlayInfoDto = new VideoPlayInfoDto();
+        videoPlayInfoDto.setVideoId(videoInfoFile.getVideoId());
+        videoPlayInfoDto.setFileIndex(videoInfoFile.getFileIndex());
+
+        TokenUserInfoDto tokenUserInfoDto = getTokenInfoFromCookie();
+        if (tokenUserInfoDto != null) {
+            videoPlayInfoDto.setUserId(tokenUserInfoDto.getUserId());
+        }
+        // 加入消息队列
+        redisComponent.addVideoPlay(videoPlayInfoDto);
+    }
+
+```
+
+### 核心思想
+
+**每次播放视频后不是立马更新视频播放数，而是将该视频信息添加进消息队列，通过异步线程的方式进行消费从而提高性能**
+
+1. 将视频信息存入消息队列
+
+```java
+public void addVideoPlay(VideoPlayInfoDto videoPlayInfoDto) {
+       redisUtils.lpush(Constants.REDIS_KEY_QUEUE_VIDEO_PLAY, videoPlayInfoDto, null);
+}
+```
+
+2. 通过异步线程去消费该队列
+
+```java
+	@PostConstruct
+    public void consumeVideoPlayQueue() {
+        executorService.execute(() -> {
+            while (true) {
+                try {
+                    VideoPlayInfoDto videoPlayInfoDto = (VideoPlayInfoDto) 			redisUtils.rpop(Constants.REDIS_KEY_QUEUE_VIDEO_PLAY);
+                    if (videoPlayInfoDto == null) {
+                        Thread.sleep(1500);
+                        continue;
+                    }
+                    //更新播放数
+                    videoInfoService.addReadCount(videoPlayInfoDto.getVideoId());
+                    if (!StringTools.isEmpty(videoPlayInfoDto.getUserId())) {
+                        // 记录历史
+                        videoPlayHistoryService.saveHistory(videoPlayInfoDto.getUserId(), videoPlayInfoDto.getVideoId(), videoPlayInfoDto.getFileIndex());
+                    }
+                    //按天记录播放数
+                    redisComponent.recordVideoPlayCount(videoPlayInfoDto.getVideoId());
+
+                    //更新es播放数量
+                    esSearchComponent.updateDocCount(videoPlayInfoDto.getVideoId(), SearchOrderTypeEnum.VIDEO_PLAY.getField(), 1);
+
+                } catch (Exception e) {
+                    log.error("获取视频播放文件队列信息失败", e);
+                }
+            }
+        });
+    }
+```
+
