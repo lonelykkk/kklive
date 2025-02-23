@@ -45,6 +45,20 @@ public class UCenterVideoPostController extends ABaseController {
     @Resource
     private VideoInfoService videoInfoService;
 
+    /**
+     * 上传视频
+     * @param videoId
+     * @param videoCover
+     * @param videoName
+     * @param pCategoryId
+     * @param categoryId
+     * @param postType
+     * @param tags
+     * @param introduction
+     * @param interaction
+     * @param uploadFileList
+     * @return
+     */
     @RequestMapping("/postVideo")
     @GlobalInterceptor(checkLogin = true)
     public ResponseVO postVideo(String videoId, @NotEmpty String videoCover, @NotEmpty @Size(max = 100) String videoName, @NotNull Integer pCategoryId,

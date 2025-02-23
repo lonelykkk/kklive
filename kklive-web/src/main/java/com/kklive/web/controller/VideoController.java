@@ -67,6 +67,13 @@ public class VideoController extends ABaseController {
         return getSuccessResponseVO(recommendVideoList);
     }
 
+    /**
+     * 加载视频
+     * @param pCategoryId
+     * @param categoryId
+     * @param pageNo
+     * @return
+     */
     @RequestMapping("/loadVideo")
     @GlobalInterceptor
     public ResponseVO postVideo(Integer pCategoryId, Integer categoryId, Integer pageNo) {
