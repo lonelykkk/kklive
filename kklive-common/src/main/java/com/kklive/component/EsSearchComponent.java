@@ -147,6 +147,10 @@ public class EsSearchComponent {
         }
     }
 
+    /**
+     * 将视频信息保存到es
+     * @param videoInfo
+     */
     public void saveDoc(VideoInfo videoInfo) {
         try {
             if (docExist(videoInfo.getVideoId())) {
@@ -238,16 +242,17 @@ public class EsSearchComponent {
     /**
      * es查询
      * @param highlight 是否需要高亮
-     * @param keyword
-     * @param orderType
-     * @param pageNo
-     * @param pageSize
+     * @param keyword 搜索词条
+     * @param orderType 排序类型
+     * @param pageNo 分页
+     * @param pageSize 页面大小
      * @return
      */
     public PaginationResultVO<VideoInfo> search(Boolean highlight, String keyword, Integer orderType, Integer pageNo, Integer pageSize) {
         try {
             SearchOrderTypeEnum searchOrderTypeEnum = SearchOrderTypeEnum.getByType(orderType);
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+            // 多条件查询，根据videoName和tags进行搜索
             searchSourceBuilder.query(QueryBuilders.multiMatchQuery(keyword, "videoName", "tags"));
             // 高亮
             if (highlight) {
