@@ -3,7 +3,7 @@
 
 ## 在线播放人数思路
 
-### 1. 通过轮询‘’/reportVideoPlayOnline‘’ 接口实时查询在线人数
+### 1. 通过轮询‘’/reportVideoPlayOnline‘’ 接口实时查询在线人数 
 
 ```java
 @RequestMapping("/reportVideoPlayOnline")
